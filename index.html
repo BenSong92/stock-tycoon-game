@@ -1,0 +1,1142 @@
+<title>주가조작단 — 트레이딩 보드게임</title>
+<style>
+:root{
+  --bg:#0a0d12;
+  --page:#06080b;
+  --panel:#11151c;
+  --panel-2:#171d26;
+  --panel-3:#1d2430;
+  --border:rgba(255,255,255,0.09);
+  --border-strong:rgba(255,255,255,0.16);
+  --ink:#eef1f4;
+  --ink-2:#9aa5b1;
+  --ink-3:#6b7683;
+  --accent:#c9a35c;
+  --accent-strong:#e0bd7e;
+  --accent-wash:rgba(201,163,92,0.14);
+  --good:#2fbf4f;
+  --good-wash:rgba(47,191,79,0.14);
+  --critical:#e2574f;
+  --critical-wash:rgba(226,87,79,0.14);
+  --warning:#e0a530;
+  --p1:#3987e5;
+  --p2:#d95926;
+  --p3:#199e70;
+  --p4:#c98500;
+  --radius:10px;
+  --serif:Georgia,'Iowan Old Style','Times New Roman',serif;
+  --mono:ui-monospace,'SF Mono',Consolas,'Cascadia Mono',monospace;
+  --sans:-apple-system,'Segoe UI',system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(ellipse 900px 500px at 50% -10%, rgba(201,163,92,0.07), transparent),
+    var(--page);
+  color:var(--ink);
+  font-family:var(--sans);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--accent-wash);color:var(--accent-strong);}
+button{font-family:inherit;}
+button:focus-visible, input:focus-visible, select:focus-visible{
+  outline:2px solid var(--accent-strong); outline-offset:2px;
+}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;}
+.hidden{display:none !important;}
+
+/* ---------- Ticker ---------- */
+#tickerBar{
+  position:sticky;top:0;z-index:40;
+  background:#000;
+  border-bottom:1px solid var(--border-strong);
+  overflow:hidden;
+  white-space:nowrap;
+  height:34px;
+  display:flex;align-items:center;
+}
+#tickerBar .tickerTrack{
+  display:inline-flex;gap:2.5rem;
+  padding-left:100%;
+  animation:tickerScroll 38s linear infinite;
+  font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;
+}
+@keyframes tickerScroll{ from{transform:translateX(0);} to{transform:translateX(-100%);} }
+.tickerTrack span{color:var(--ink-2);}
+.tickerTrack span b{color:var(--accent-strong);font-weight:600;}
+.tickerTrack .up{color:var(--good);}
+.tickerTrack .down{color:var(--critical);}
+@media (prefers-reduced-motion:reduce){ .tickerTrack{animation:none;padding-left:1rem;} }
+
+/* ---------- Shell ---------- */
+#app{max-width:1400px;margin:0 auto;padding:1.25rem 1.25rem 3rem;}
+header.masthead{
+  display:flex;align-items:baseline;justify-content:space-between;gap:1rem;
+  border-bottom:2px solid var(--border-strong);
+  padding-bottom:.85rem;margin-bottom:1.25rem;flex-wrap:wrap;
+}
+header.masthead h1{
+  font-family:var(--serif);
+  font-size:1.9rem;font-weight:700;letter-spacing:.02em;
+  margin:0;text-wrap:balance;
+  color:var(--ink);
+}
+header.masthead h1 span{color:var(--accent);}
+header.masthead .sub{
+  font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+  font-family:var(--sans);
+}
+header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-align:right;}
+
+/* ---------- Setup ---------- */
+#setupScreen{max-width:640px;margin:2rem auto;}
+.card{
+  background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.4rem 1.5rem;
+}
+.card + .card{margin-top:1rem;}
+.card h2{
+  font-family:var(--serif);font-size:1.15rem;margin:0 0 .9rem;color:var(--ink);
+  display:flex;align-items:center;gap:.5rem;
+}
+.card h2 small{font-family:var(--sans);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:400;}
+.rowChoice{display:flex;gap:.5rem;flex-wrap:wrap;}
+.chip{
+  border:1px solid var(--border-strong);background:var(--panel-2);color:var(--ink-2);
+  padding:.5rem 1.1rem;border-radius:999px;cursor:pointer;font-size:.85rem;transition:all .15s;
+}
+.chip:hover{border-color:var(--accent);color:var(--ink);}
+.chip.active{background:var(--accent-wash);border-color:var(--accent);color:var(--accent-strong);font-weight:600;}
+.nameRow{display:flex;align-items:center;gap:.6rem;margin-top:.6rem;}
+.nameRow .swatch{width:14px;height:14px;border-radius:50%;flex:none;}
+.nameRow input{
+  flex:1;background:var(--panel-2);border:1px solid var(--border-strong);border-radius:7px;
+  color:var(--ink);padding:.5rem .7rem;font-size:.9rem;
+}
+.helpText{font-size:.78rem;color:var(--ink-3);margin-top:.6rem;line-height:1.5;}
+.bigBtn{
+  width:100%;margin-top:1.1rem;padding:.85rem;border-radius:8px;border:1px solid var(--accent);
+  background:linear-gradient(180deg,var(--accent-strong),var(--accent));color:#1a1200;
+  font-weight:700;font-size:.95rem;letter-spacing:.02em;cursor:pointer;
+}
+.bigBtn:hover{filter:brightness(1.06);}
+.bigBtn:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+
+/* ---------- Game layout ---------- */
+#gameScreen{display:flex;gap:1.25rem;align-items:flex-start;flex-wrap:wrap;}
+.boardWrap{flex:1 1 560px;max-width:640px;min-width:340px;}
+.board{
+  display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(6,1fr);
+  gap:5px;width:100%;aspect-ratio:1/1;
+  background:var(--panel-3);padding:5px;border-radius:12px;border:1px solid var(--border-strong);
+}
+.tile{
+  position:relative;background:var(--panel);border:1px solid var(--border);border-radius:6px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:.3rem .35rem;overflow:hidden;font-size:.62rem;
+}
+.tile .tType{
+  font-size:.58rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);
+}
+.tile .tName{font-size:.66rem;font-weight:600;color:var(--ink);line-height:1.15;}
+.tile .tPrice{font-family:var(--mono);font-size:.66rem;color:var(--ink-2);}
+.tile.company{border-top:2px solid var(--tileColor,var(--accent));}
+.tile.news{background:linear-gradient(160deg,var(--panel),rgba(226,87,79,0.09));}
+.tile.insider{background:linear-gradient(160deg,var(--panel),rgba(201,163,92,0.14));}
+.tile.bank{background:linear-gradient(160deg,var(--panel),rgba(57,135,229,0.12));}
+.tile.payday{background:linear-gradient(160deg,var(--panel),rgba(47,191,79,0.13));border:1px solid var(--good);}
+.tile .tokens{position:absolute;right:3px;bottom:3px;display:flex;gap:2px;flex-wrap:wrap-reverse;max-width:70%;justify-content:flex-end;}
+.token{
+  width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:.55rem;font-weight:700;color:#000;border:1.5px solid rgba(0,0,0,0.5);
+  box-shadow:0 1px 3px rgba(0,0,0,.5);flex:none;
+}
+.centerPanel{
+  grid-column:2/6;grid-row:2/6;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;padding:1rem;text-align:center;
+}
+.centerPanel .turnLabel{font-size:.68rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);}
+.centerPanel .turnName{font-family:var(--serif);font-size:1.3rem;font-weight:700;}
+.diceRow{display:flex;gap:.5rem;}
+.die{
+  width:42px;height:42px;border-radius:8px;background:var(--panel-3);border:1px solid var(--border-strong);
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--accent-strong);
+}
+.rollBtn{
+  padding:.65rem 1.4rem;border-radius:8px;border:1px solid var(--accent);background:var(--accent-wash);
+  color:var(--accent-strong);font-weight:700;cursor:pointer;font-size:.9rem;
+}
+.rollBtn:hover:not(:disabled){background:var(--accent);color:#1a1200;}
+.rollBtn:disabled{opacity:.35;cursor:not-allowed;}
+.endTurnBtn{
+  padding:.55rem 1.2rem;border-radius:8px;border:1px solid var(--border-strong);background:var(--panel-3);
+  color:var(--ink);cursor:pointer;font-size:.85rem;
+}
+.endTurnBtn:hover:not(:disabled){border-color:var(--good);color:var(--good);}
+.endTurnBtn:disabled{opacity:.3;cursor:not-allowed;}
+.centerNews{font-size:.72rem;color:var(--ink-2);max-width:220px;line-height:1.4;min-height:2.5em;}
+
+/* ---------- Sidebar ---------- */
+.sidebar{flex:1 1 380px;min-width:320px;display:flex;flex-direction:column;gap:.9rem;}
+.tabs{display:flex;gap:.3rem;border-bottom:1px solid var(--border);}
+.tabBtn{
+  background:none;border:none;color:var(--ink-3);padding:.55rem .9rem;font-size:.82rem;cursor:pointer;
+  border-bottom:2px solid transparent;font-weight:600;
+}
+.tabBtn.active{color:var(--accent-strong);border-color:var(--accent);}
+.tabPane{display:none;}
+.tabPane.active{display:block;}
+
+.playerCard{
+  border:1px solid var(--border);border-radius:8px;padding:.7rem .85rem;background:var(--panel);
+  display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem;
+}
+.playerCard.current{border-color:var(--accent);background:var(--accent-wash);}
+.playerCard .dot{width:11px;height:11px;border-radius:50%;flex:none;}
+.playerCard .pname{font-weight:700;flex:1;font-size:.88rem;}
+.playerCard .pstats{display:flex;gap:.9rem;font-family:var(--mono);font-size:.76rem;color:var(--ink-2);}
+.playerCard .pstats b{color:var(--ink);font-weight:600;}
+
+.stockGrid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
+@media(max-width:900px){.stockGrid{grid-template-columns:1fr;}}
+.stockCard{
+  border:1px solid var(--border);border-radius:8px;padding:.65rem .7rem;background:var(--panel);
+  transition:border-color .2s;
+}
+.stockCard.highlight{border-color:var(--accent);}
+.stockCard .sc-head{display:flex;align-items:center;gap:.4rem;margin-bottom:.25rem;}
+.stockCard .sc-tag{width:9px;height:9px;border-radius:50%;flex:none;}
+.stockCard .sc-name{font-weight:700;font-size:.82rem;flex:1;}
+.stockCard .sc-price{font-family:var(--mono);font-size:.95rem;font-weight:700;}
+.stockCard .sc-delta{font-family:var(--mono);font-size:.72rem;}
+.stockCard .sc-delta.up{color:var(--good);}
+.stockCard .sc-delta.down{color:var(--critical);}
+.stockCard canvas{width:100%;height:34px;display:block;margin:.3rem 0;}
+.sc-hold{font-size:.7rem;color:var(--ink-3);margin-bottom:.35rem;}
+.sc-hold b{color:var(--ink-2);}
+.sc-trade{display:flex;gap:.35rem;align-items:center;}
+.sc-trade input{
+  width:52px;background:var(--panel-2);border:1px solid var(--border-strong);border-radius:5px;
+  color:var(--ink);padding:.3rem;font-size:.75rem;font-family:var(--mono);text-align:center;
+}
+.miniBtn{
+  border:1px solid var(--border-strong);background:var(--panel-2);color:var(--ink);border-radius:5px;
+  padding:.3rem .55rem;font-size:.72rem;cursor:pointer;flex:1;
+}
+.miniBtn.buy:hover{border-color:var(--good);color:var(--good);}
+.miniBtn.sell:hover{border-color:var(--critical);color:var(--critical);}
+.miniBtn:disabled{opacity:.35;cursor:not-allowed;}
+
+.financeBox{border:1px solid var(--border);border-radius:8px;padding:.85rem;background:var(--panel);margin-bottom:.7rem;}
+.financeBox .row{display:flex;justify-content:space-between;font-size:.82rem;padding:.25rem 0;color:var(--ink-2);}
+.financeBox .row b{color:var(--ink);font-family:var(--mono);}
+.financeBox .actions{display:flex;gap:.4rem;margin-top:.6rem;}
+.financeBox input{
+  width:100px;background:var(--panel-2);border:1px solid var(--border-strong);border-radius:6px;
+  color:var(--ink);padding:.4rem .5rem;font-family:var(--mono);font-size:.8rem;
+}
+.actionBtn{
+  border:1px solid var(--border-strong);background:var(--panel-2);color:var(--ink);border-radius:6px;
+  padding:.45rem .9rem;font-size:.78rem;cursor:pointer;font-weight:600;
+}
+.actionBtn.gold{border-color:var(--accent);color:var(--accent-strong);}
+.actionBtn.gold:hover:not(:disabled){background:var(--accent-wash);}
+.actionBtn:disabled{opacity:.35;cursor:not-allowed;}
+.leverageBar{height:6px;border-radius:3px;background:var(--panel-3);overflow:hidden;margin-top:.5rem;}
+.leverageBar .fill{height:100%;background:linear-gradient(90deg,var(--good),var(--warning),var(--critical));}
+
+table.standings{width:100%;border-collapse:collapse;font-size:.8rem;}
+table.standings th{text-align:left;color:var(--ink-3);font-weight:600;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;padding:.4rem .5rem;border-bottom:1px solid var(--border-strong);}
+table.standings td{padding:.45rem .5rem;border-bottom:1px solid var(--border);font-family:var(--mono);}
+table.standings tr.current td{background:var(--accent-wash);}
+table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;align-items:center;gap:.4rem;}
+
+#logList{list-style:none;margin:0;padding:0;max-height:260px;overflow-y:auto;display:flex;flex-direction:column-reverse;gap:.35rem;}
+#logList li{font-size:.76rem;color:var(--ink-2);border-left:2px solid var(--border-strong);padding:.15rem .6rem;}
+#logList li b{color:var(--ink);}
+#logList li.newsline{border-color:var(--critical);}
+#logList li.goodline{border-color:var(--good);}
+#logList li.goldline{border-color:var(--accent);}
+
+/* ---------- Modal ---------- */
+.overlay{
+  position:fixed;inset:0;background:rgba(3,4,6,0.72);backdrop-filter:blur(2px);
+  display:flex;align-items:center;justify-content:center;z-index:80;padding:1rem;
+}
+.modal{
+  background:var(--panel);border:1px solid var(--border-strong);border-radius:12px;
+  max-width:440px;width:100%;padding:1.5rem 1.6rem;box-shadow:0 20px 60px rgba(0,0,0,.6);
+}
+.modal .kicker{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:.4rem;}
+.modal h3{font-family:var(--serif);font-size:1.25rem;margin:.1rem 0 .6rem;text-wrap:balance;}
+.modal p{color:var(--ink-2);font-size:.88rem;line-height:1.55;margin:.3rem 0;}
+.modal .impact{
+  font-family:var(--mono);font-size:1rem;font-weight:700;margin-top:.7rem;padding:.55rem .7rem;
+  border-radius:7px;background:var(--panel-2);
+}
+.modal .impact.up{color:var(--good);}
+.modal .impact.down{color:var(--critical);}
+.modal .closeBtn{
+  margin-top:1.2rem;width:100%;padding:.7rem;border-radius:8px;border:1px solid var(--accent);
+  background:var(--accent-wash);color:var(--accent-strong);font-weight:700;cursor:pointer;
+}
+.modal .closeBtn:hover{background:var(--accent);color:#1a1200;}
+
+/* end game */
+#endModal .rankRow{display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--border);}
+#endModal .rankRow .rank{font-family:var(--serif);font-weight:700;width:1.4em;color:var(--accent);}
+#endModal .rankRow .who{flex:1;font-weight:700;}
+#endModal .rankRow .val{font-family:var(--mono);color:var(--ink-2);}
+#chartLegend{display:flex;gap:.8rem;flex-wrap:wrap;font-size:.72rem;color:var(--ink-2);margin-top:.4rem;}
+#chartLegend span{display:inline-flex;align-items:center;gap:.3rem;}
+#chartLegend i{width:9px;height:9px;border-radius:50%;display:inline-block;}
+</style>
+
+<div id="tickerBar"><div class="tickerTrack" id="tickerTrack"><span>시장 개장 준비 중…</span></div></div>
+
+<div id="app">
+  <header class="masthead">
+    <div>
+      <h1>주가<span>조작</span>단</h1>
+      <div class="sub">Insider Trading Board Game · 2–4인용 증권 트레이딩 보드게임</div>
+    </div>
+    <div class="status" id="headerStatus"></div>
+  </header>
+
+  <!-- ========== SETUP ========== -->
+  <div id="setupScreen">
+    <div class="card">
+      <h2>참가 인원 <small>2 – 4명</small></h2>
+      <div class="rowChoice" id="playerCountChoice"></div>
+    </div>
+    <div class="card">
+      <h2>투자자 등록</h2>
+      <div id="nameRows"></div>
+      <div class="helpText">각 투자자는 300,000원의 시드머니로 게임을 시작합니다. 자리를 돌아가며 주사위를 굴려 주식을 사고팔고, 대출(레버리지)로 몸집을 키우거나, 정보원 타일에서 특종 정보를 사서 앞서갈 수 있습니다.</div>
+    </div>
+    <div class="card">
+      <h2>게임 길이</h2>
+      <div class="rowChoice" id="lengthChoice"></div>
+      <div class="helpText" id="lengthHelp"></div>
+    </div>
+    <button class="bigBtn" id="startBtn">거래 개시 — 게임 시작</button>
+  </div>
+
+  <!-- ========== GAME ========== -->
+  <div id="gameScreen" class="hidden">
+    <div class="boardWrap">
+      <div class="board" id="board"></div>
+    </div>
+    <div class="sidebar">
+      <div class="tabs">
+        <button class="tabBtn active" data-tab="trade">거래소</button>
+        <button class="tabBtn" data-tab="finance">금융센터</button>
+        <button class="tabBtn" data-tab="rank">순위</button>
+        <button class="tabBtn" data-tab="log">중계</button>
+      </div>
+
+      <div id="playerCardsWrap"></div>
+
+      <div class="tabPane active" id="pane-trade">
+        <div class="stockGrid" id="stockGrid"></div>
+      </div>
+
+      <div class="tabPane" id="pane-finance">
+        <div class="financeBox" id="financeBox"></div>
+      </div>
+
+      <div class="tabPane" id="pane-rank">
+        <table class="standings" id="standingsTable"></table>
+      </div>
+
+      <div class="tabPane" id="pane-log">
+        <ul id="logList"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ DATA ============ */
+const COMPANIES = [
+  {id:'samsung', name:'삼성전자',        color:'#4d7cff', base:52000},
+  {id:'hynix',   name:'SK하이닉스',      color:'#ff6b81', base:41000},
+  {id:'naver',   name:'네이버',          color:'#22b8b0', base:23000},
+  {id:'kakao',   name:'카카오',          color:'#f5cb42', base:14000},
+  {id:'hyundai', name:'현대차',          color:'#8a94a6', base:31000},
+  {id:'lges',    name:'LG에너지솔루션',  color:'#ff4d8d', base:47000},
+  {id:'apple',   name:'애플',            color:'#d8dee6', base:36000},
+  {id:'tesla',   name:'테슬라',          color:'#ff3b3b', base:62000},
+  {id:'nvidia',  name:'엔비디아',        color:'#8fd400', base:58000},
+  {id:'amazon',  name:'아마존',          color:'#ff9900', base:39000},
+];
+
+const NEWS_POOL = [
+  {c:'samsung', h:'삼성전자, 차세대 파운드리 초격차 기술 공개', pct:14},
+  {c:'hynix',   h:'SK하이닉스, HBM 대량 공급 계약 체결', pct:16},
+  {c:'naver',   h:'네이버, AI 검색 서비스 대규모 장애 발생', pct:-12},
+  {c:'kakao',   h:'카카오, 임원진 횡령 의혹 검찰 수사 착수', pct:-18},
+  {c:'hyundai', h:'현대차, 미국 신공장 목표 초과 달성', pct:10},
+  {c:'lges',    h:'LG에너지솔루션, 배터리 화재로 리콜 사태', pct:-15},
+  {c:'apple',   h:'애플, 신제품 사전예약 역대 최고 기록', pct:12},
+  {c:'tesla',   h:'테슬라, CEO 돌발 발언에 주가 요동', pct:-10},
+  {c:'nvidia',  h:'엔비디아, 차세대 GPU 수요 폭발적 증가', pct:20},
+  {c:'amazon',  h:'아마존, 물류센터 파업 확산', pct:-8},
+  {c:'samsung', h:'삼성전자, 반도체 가격 담합 과징금 부과', pct:-11},
+  {c:'hynix',   h:'SK하이닉스, 공장 정전 사고로 생산 차질', pct:-9},
+  {c:'naver',   h:'네이버, 해외 시장 점유율 1위 등극', pct:11},
+  {c:'kakao',   h:'카카오, 신규 플랫폼 이용자 급증', pct:9},
+  {c:'hyundai', h:'현대차, 대규모 차량 결함 리콜 발표', pct:-13},
+  {c:'lges',    h:'LG에너지솔루션, 북미 배터리 공장 추가 수주', pct:15},
+  {c:'apple',   h:'애플, 반독점 소송 패소', pct:-14},
+  {c:'tesla',   h:'테슬라, 완전자율주행 규제 승인 획득', pct:19},
+  {c:'nvidia',  h:'엔비디아, 수출 규제로 매출 전망 하향', pct:-16},
+  {c:'amazon',  h:'아마존, 클라우드 부문 사상 최대 실적', pct:13},
+  {c:null, h:'[시장 전체] 기준금리 전격 인상 발표', pct:-6},
+  {c:null, h:'[시장 전체] 글로벌 훈풍, 투자 심리 회복', pct:7},
+  {c:null, h:'[시장 전체] 환율 급등, 수출주 동반 강세', pct:5},
+  {c:null, h:'[시장 전체] 인플레이션 공포, 증시 전반 하락', pct:-8},
+];
+
+const PLAYER_COLORS = ['#3987e5','#d95926','#199e70','#c98500'];
+
+// tile layout, index 0..19
+const TILE_DEFS = [
+  {type:'payday'},
+  {type:'company', c:'samsung'},
+  {type:'news'},
+  {type:'company', c:'hynix'},
+  {type:'insider'},
+  {type:'company', c:'naver'},
+  {type:'news'},
+  {type:'company', c:'kakao'},
+  {type:'bank'},
+  {type:'company', c:'hyundai'},
+  {type:'news'},
+  {type:'company', c:'lges'},
+  {type:'insider'},
+  {type:'company', c:'apple'},
+  {type:'news'},
+  {type:'company', c:'tesla'},
+  {type:'bank'},
+  {type:'company', c:'nvidia'},
+  {type:'news'},
+  {type:'company', c:'amazon'},
+];
+// grid position per index (perimeter of 6x6)
+function gridPos(i){
+  if(i<=5) return {col:i+1, row:6};
+  if(i<=9) return {col:6, row:6-(i-5)};
+  if(i<=15) return {col:6-(i-10), row:1};
+  return {col:1, row:1+(i-15)};
+}
+
+const SALARY = 40000;
+const START_CASH = 300000;
+const INTEREST_RATE = 0.05;
+const TRADE_FEE = 0.005;
+const LEVERAGE_MULT = 2;
+
+/* ============ STATE ============ */
+let G = null;
+
+function fmt(n){ return Math.round(n).toLocaleString('ko-KR')+'원'; }
+function pctStr(n){ return (n>=0?'+':'')+n.toFixed(1)+'%'; }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function newGame(names, turnsPerPlayer){
+  const companies = COMPANIES.map(c=>({...c, price:c.base, history:[c.base]}));
+  const players = names.map((name,i)=>({
+    name, color:PLAYER_COLORS[i], cash:START_CASH, loan:0, pos:0, lap:0,
+    holdings:{}, netWorthHistory:[{turn:0, value:START_CASH}],
+    insiderUsedThisTurn:false,
+  }));
+  G = {
+    companies, players,
+    tiles: TILE_DEFS,
+    drawPile: shuffle(NEWS_POOL),
+    discardPile: [],
+    currentIndex:0,
+    turnCount:0,
+    maxTurns: names.length*turnsPerPlayer,
+    hasRolled:false,
+    animating:false,
+    insiderAvailableThisTurn:false,
+    log:[],
+    ended:false,
+  };
+  logMsg('시장이 개장했습니다. 행운을 빕니다.', 'gold');
+}
+
+function logMsg(text, cls){
+  G.log.push({text, cls: cls||''});
+  if(G.log.length>200) G.log.shift();
+}
+
+function company(id){ return G.companies.find(c=>c.id===id); }
+function currentPlayer(){ return G.players[G.currentIndex]; }
+
+function portfolioValue(p){
+  let v=0;
+  for(const id in p.holdings){ v += p.holdings[id]*company(id).price; }
+  return v;
+}
+function netWorth(p){ return p.cash + portfolioValue(p) - p.loan; }
+
+/* ============ MARKET ============ */
+function applyMarketDrift(){
+  G.companies.forEach(c=>{
+    const drift = (Math.random()*6-3)/100; // -3%..+3%
+    c.price = Math.max(500, Math.round(c.price*(1+drift)));
+    pushHistory(c);
+  });
+}
+function pushHistory(c){
+  c.history.push(c.price);
+  if(c.history.length>36) c.history.shift();
+}
+
+function drawCard(){
+  if(G.drawPile.length===0){
+    G.drawPile = shuffle(G.discardPile);
+    G.discardPile = [];
+  }
+  const card = G.drawPile.pop();
+  G.discardPile.push(card);
+  return card;
+}
+function peekCard(){
+  if(G.drawPile.length===0){
+    G.drawPile = shuffle(G.discardPile);
+    G.discardPile = [];
+  }
+  return G.drawPile[G.drawPile.length-1];
+}
+function applyCard(card){
+  const jitter = ()=> (Math.random()*4-2);
+  if(card.c){
+    const c = company(card.c);
+    const actual = card.pct + jitter();
+    c.price = Math.max(500, Math.round(c.price*(1+actual/100)));
+    pushHistory(c);
+    return {headline:card.h, detail:c.name+' 주가 '+pctStr(actual), pct:actual, target:c.name};
+  } else {
+    G.companies.forEach(c=>{
+      const actual = card.pct + jitter();
+      c.price = Math.max(500, Math.round(c.price*(1+actual/100)));
+      pushHistory(c);
+    });
+    return {headline:card.h, detail:'시장 전체 평균 '+pctStr(card.pct), pct:card.pct, target:'전체 시장'};
+  }
+}
+
+/* ============ MARGIN CALL ============ */
+function checkMarginCalls(){
+  G.players.forEach(p=>{
+    if(p.loan<=0) return;
+    let nw = netWorth(p);
+    if(nw>=0) return;
+    logMsg(p.name+' 마진콜 발생! 보유 주식을 강제 매각합니다.', 'news');
+    const held = Object.keys(p.holdings).filter(id=>p.holdings[id]>0)
+      .sort((a,b)=> (p.holdings[b]*company(b).price)-(p.holdings[a]*company(a).price));
+    for(const id of held){
+      if(p.loan<=p.cash) break;
+      const qty = p.holdings[id];
+      const proceeds = qty*company(id).price*0.9; // fire sale
+      p.cash += proceeds;
+      p.holdings[id]=0;
+      const payoff = Math.min(p.loan, p.cash);
+      p.loan -= payoff; p.cash -= payoff;
+      logMsg(p.name+'의 '+company(id).name+' '+qty+'주가 강제 청산되었습니다 (10% 손실).', 'news');
+    }
+    if(p.loan>p.cash){
+      const payoff = Math.min(p.loan,Math.max(p.cash,0));
+      p.loan -= payoff; p.cash -= payoff;
+    }
+  });
+}
+
+/* ============ TURN FLOW ============ */
+function startTurn(){
+  const p = currentPlayer();
+  p.insiderUsedThisTurn=false;
+  G.hasRolled=false;
+  G.insiderAvailableThisTurn=false;
+  applyMarketDrift();
+  checkMarginCalls();
+  renderAll();
+}
+
+function rollDice(){
+  if(G.hasRolled||G.animating||G.ended) return;
+  G.hasRolled=true;
+  G.animating=true;
+  const d1=1+Math.floor(Math.random()*6), d2=1+Math.floor(Math.random()*6);
+  const steps=d1+d2;
+  document.getElementById('die1').textContent=d1;
+  document.getElementById('die2').textContent=d2;
+  renderAll();
+  const p = currentPlayer();
+  let moved=0;
+  const timer = setInterval(()=>{
+    p.pos = (p.pos+1)%20;
+    moved++;
+    if(p.pos===0){
+      passStart(p);
+    }
+    renderBoardTokens();
+    if(moved>=steps){
+      clearInterval(timer);
+      G.animating=false;
+      resolveTile(p);
+      renderAll();
+    }
+  },130);
+}
+
+function passStart(p){
+  p.lap++;
+  p.cash += SALARY;
+  logMsg(p.name+'님, 월급날! +'+fmt(SALARY), 'good');
+  if(p.loan>0){
+    const interest = Math.round(p.loan*INTEREST_RATE);
+    p.loan += interest;
+    logMsg(p.name+'님의 대출 이자 '+fmt(interest)+'가 누적되었습니다.', 'news');
+  }
+}
+
+function resolveTile(p){
+  const tile = G.tiles[p.pos];
+  if(tile.type==='news'){
+    const card = drawCard();
+    const result = applyCard(card);
+    logMsg('[속보] '+result.headline+' → '+result.detail, 'news');
+    showNewsModal(result);
+  } else if(tile.type==='insider'){
+    G.insiderAvailableThisTurn=true;
+    logMsg(p.name+'님이 정보원 타일에 도착했습니다. 이번 턴, 특종 정보를 열람할 수 있습니다.', 'gold');
+  } else if(tile.type==='bank'){
+    p.cash += 3000;
+    logMsg(p.name+'님이 은행에 들러 이자 캐시백 '+fmt(3000)+'을 받았습니다.', 'good');
+  } else if(tile.type==='company'){
+    const c = company(tile.c);
+    const qty = p.holdings[tile.c]||0;
+    if(qty>0){
+      const div = qty*200;
+      p.cash += div;
+      logMsg(p.name+'님이 '+c.name+' 배당금 '+fmt(div)+'를 받았습니다.', 'good');
+    } else {
+      logMsg(p.name+'님이 '+c.name+' 타일에 도착했습니다.', '');
+    }
+  } else if(tile.type==='payday'){
+    logMsg(p.name+'님이 월급날 칸에 정확히 도착했습니다!', 'good');
+  }
+}
+
+function endTurn(){
+  if(!G.hasRolled||G.animating||G.ended) return;
+  const p = currentPlayer();
+  p.netWorthHistory.push({turn:G.turnCount+1, value:netWorth(p)});
+  G.turnCount++;
+  if(G.turnCount>=G.maxTurns){
+    endGame();
+    return;
+  }
+  G.currentIndex = (G.currentIndex+1)%G.players.length;
+  startTurn();
+}
+
+/* ============ TRADING ============ */
+function buyStock(companyId, qty){
+  const p = currentPlayer();
+  if(G.animating||G.ended||qty<=0) return;
+  const c = company(companyId);
+  const cost = c.price*qty*(1+TRADE_FEE);
+  if(cost>p.cash){ logMsg('현금이 부족합니다.', 'news'); renderAll(); return; }
+  p.cash -= cost;
+  p.holdings[companyId] = (p.holdings[companyId]||0)+qty;
+  logMsg(p.name+'님이 '+c.name+' '+qty+'주 매수 ('+fmt(cost)+')', '');
+  renderAll();
+}
+function sellStock(companyId, qty){
+  const p = currentPlayer();
+  if(G.animating||G.ended||qty<=0) return;
+  const have = p.holdings[companyId]||0;
+  if(qty>have){ logMsg('보유 수량보다 많이 팔 수 없습니다.', 'news'); renderAll(); return; }
+  const c = company(companyId);
+  const proceeds = c.price*qty*(1-TRADE_FEE);
+  p.cash += proceeds;
+  p.holdings[companyId] -= qty;
+  logMsg(p.name+'님이 '+c.name+' '+qty+'주 매도 ('+fmt(proceeds)+')', '');
+  renderAll();
+}
+
+/* ============ FINANCE ============ */
+function maxLoanFor(p){
+  return Math.max(0, Math.round((p.cash+portfolioValue(p))*LEVERAGE_MULT - p.loan));
+}
+function borrow(amount){
+  const p = currentPlayer();
+  if(G.animating||G.ended||amount<=0) return;
+  const room = maxLoanFor(p);
+  const amt = Math.min(amount, room);
+  if(amt<=0){ logMsg('레버리지 한도를 초과했습니다.', 'news'); renderAll(); return; }
+  p.loan += amt; p.cash += amt;
+  logMsg(p.name+'님이 '+fmt(amt)+' 대출(레버리지)을 실행했습니다.', 'gold');
+  renderAll();
+}
+function repay(amount){
+  const p = currentPlayer();
+  if(G.animating||G.ended||amount<=0) return;
+  const amt = Math.min(amount, p.loan, p.cash);
+  if(amt<=0){ renderAll(); return; }
+  p.loan -= amt; p.cash -= amt;
+  logMsg(p.name+'님이 대출 '+fmt(amt)+'을 상환했습니다.', 'good');
+  renderAll();
+}
+
+/* ============ INSIDER PEEK ============ */
+function useInsider(){
+  const p = currentPlayer();
+  if(!G.insiderAvailableThisTurn||p.insiderUsedThisTurn||G.animating||G.ended) return;
+  const cost = Math.max(3000, Math.round(p.cash*0.08/1000)*1000);
+  if(p.cash<cost){ logMsg('정보 취재 비용이 부족합니다.', 'news'); return; }
+  p.cash -= cost;
+  p.insiderUsedThisTurn = true;
+  const caught = Math.random()<0.15;
+  if(caught){
+    const fine = cost*2;
+    p.cash -= fine;
+    logMsg(p.name+'님, 정보 취재 중 금융감독원에 적발! 벌금 '+fmt(fine), 'news');
+    showInsiderModal({caught:true, cost, fine});
+  } else {
+    const card = peekCard();
+    const target = card.c? company(card.c).name : '전체 시장';
+    logMsg(p.name+'님이 '+fmt(cost)+'을 내고 특종 정보를 입수했습니다.', 'gold');
+    showInsiderModal({caught:false, cost, headline:card.h, target, pct:card.pct});
+  }
+  renderAll();
+}
+
+/* ============ RENDER ============ */
+function el(tag, cls, html){
+  const e=document.createElement(tag);
+  if(cls) e.className=cls;
+  if(html!==undefined) e.innerHTML=html;
+  return e;
+}
+
+function buildBoard(){
+  const board = document.getElementById('board');
+  board.innerHTML='';
+  G.tiles.forEach((tile,i)=>{
+    const pos = gridPos(i);
+    const t = el('div','tile '+tile.type);
+    t.style.gridColumn = pos.col;
+    t.style.gridRow = pos.row;
+    t.dataset.idx = i;
+    let typeLabel = {payday:'월급날', news:'속보', insider:'정보원', bank:'은행', company:''}[tile.type];
+    let top = el('div','tType', typeLabel);
+    t.appendChild(top);
+    if(tile.type==='company'){
+      const c = company(tile.c);
+      t.style.setProperty('--tileColor', c.color);
+      t.appendChild(el('div','tName', c.name));
+      t.appendChild(el('div','tPrice num', ''));
+    } else if(tile.type==='payday'){
+      t.appendChild(el('div','tName', '급여 '+SALARY.toLocaleString('ko-KR')+'원'));
+    } else if(tile.type==='news'){
+      t.appendChild(el('div','tName', '뉴스 카드'));
+    } else if(tile.type==='insider'){
+      t.appendChild(el('div','tName', '특종 취재'));
+    } else if(tile.type==='bank'){
+      t.appendChild(el('div','tName', '대출/캐시백'));
+    }
+    const tokens = el('div','tokens');
+    tokens.id='tok-'+i;
+    t.appendChild(tokens);
+    board.appendChild(t);
+  });
+  const center = el('div','centerPanel');
+  center.innerHTML =
+    '<div class="turnLabel" id="turnLabel">현재 차례</div>'+
+    '<div class="turnName" id="turnName"></div>'+
+    '<div class="diceRow"><div class="die" id="die1">-</div><div class="die" id="die2">-</div></div>'+
+    '<div style="display:flex;gap:.5rem;">'+
+      '<button class="rollBtn" id="rollBtn">주사위 굴리기</button>'+
+      '<button class="endTurnBtn" id="endTurnBtn">턴 종료</button>'+
+    '</div>'+
+    '<div class="centerNews" id="centerNews">라운드 '+ (G? (Math.floor(G.turnCount/G.players.length)+1):1) +'</div>';
+  board.appendChild(center);
+  document.getElementById('rollBtn').addEventListener('click', rollDice);
+  document.getElementById('endTurnBtn').addEventListener('click', endTurn);
+}
+
+function renderBoardTokens(){
+  document.querySelectorAll('[id^="tok-"]').forEach(e=>e.innerHTML='');
+  G.players.forEach((p,i)=>{
+    const wrap = document.getElementById('tok-'+p.pos);
+    if(!wrap) return;
+    const tok = el('div','token', p.name.slice(0,1));
+    tok.style.background = p.color;
+    wrap.appendChild(tok);
+  });
+  // update company tile prices
+  G.tiles.forEach((tile,i)=>{
+    if(tile.type==='company'){
+      const c = company(tile.c);
+      const tileEl = document.querySelector('.tile[data-idx="'+i+'"] .tPrice');
+      if(tileEl) tileEl.textContent = c.price.toLocaleString('ko-KR')+'원';
+    }
+  });
+}
+
+function drawSparkline(canvas, history, color){
+  const dpr = window.devicePixelRatio||1;
+  const w = canvas.clientWidth||120, h = canvas.clientHeight||34;
+  canvas.width = w*dpr; canvas.height = h*dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+  const data = history.slice(-24);
+  if(data.length<2) return;
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = (max-min)||1;
+  const pad=3;
+  const pts = data.map((v,i)=>{
+    const x = pad + (i/(data.length-1))*(w-pad*2);
+    const y = h-pad - ((v-min)/range)*(h-pad*2);
+    return [x,y];
+  });
+  // baseline
+  ctx.strokeStyle='rgba(255,255,255,0.08)';
+  ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pad,h-pad); ctx.lineTo(w-pad,h-pad); ctx.stroke();
+  // area fill
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], h-pad);
+  pts.forEach(pt=>ctx.lineTo(pt[0],pt[1]));
+  ctx.lineTo(pts[pts.length-1][0], h-pad);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0, color+'55');
+  grad.addColorStop(1, color+'00');
+  ctx.fillStyle=grad;
+  ctx.fill();
+  // line
+  ctx.beginPath();
+  pts.forEach((pt,i)=> i===0?ctx.moveTo(pt[0],pt[1]):ctx.lineTo(pt[0],pt[1]));
+  ctx.strokeStyle=color; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
+  // endpoint
+  const last = pts[pts.length-1];
+  ctx.beginPath(); ctx.arc(last[0],last[1],3,0,7); ctx.fillStyle=color; ctx.fill();
+}
+
+function renderStockGrid(){
+  const grid = document.getElementById('stockGrid');
+  grid.innerHTML='';
+  const p = currentPlayer();
+  const currentTile = G.tiles[p.pos];
+  G.companies.forEach(c=>{
+    const card = el('div','stockCard'+((currentTile.type==='company'&&currentTile.c===c.id)?' highlight':''));
+    const prev = c.history.length>1? c.history[c.history.length-2]: c.price;
+    const delta = ((c.price-prev)/prev)*100;
+    const dir = delta>=0?'up':'down';
+    const head = el('div','sc-head');
+    head.innerHTML = '<span class="sc-tag" style="background:'+c.color+'"></span>'+
+      '<span class="sc-name">'+c.name+'</span>'+
+      '<span class="sc-price num">'+c.price.toLocaleString('ko-KR')+'</span>';
+    card.appendChild(head);
+    card.appendChild(el('div','sc-delta '+dir, (dir==='up'?'▲ ':'▼ ')+pctStr(delta)));
+    const canvas = document.createElement('canvas');
+    card.appendChild(canvas);
+    const held = p.holdings[c.id]||0;
+    card.appendChild(el('div','sc-hold', '보유 <b>'+held+'주</b> · 평가액 <b>'+fmt(held*c.price)+'</b>'));
+    const trade = el('div','sc-trade');
+    trade.innerHTML =
+      '<input type="number" min="1" value="1" id="qty-'+c.id+'">'+
+      '<button class="miniBtn buy" data-act="buy" data-id="'+c.id+'">매수</button>'+
+      '<button class="miniBtn sell" data-act="sell" data-id="'+c.id+'" '+(held<=0?'disabled':'')+'>매도</button>';
+    card.appendChild(trade);
+    grid.appendChild(card);
+    requestAnimationFrame(()=>drawSparkline(canvas, c.history, c.color));
+  });
+  grid.querySelectorAll('button[data-act]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.id;
+      const qty = parseInt(document.getElementById('qty-'+id).value)||1;
+      if(btn.dataset.act==='buy') buyStock(id, qty); else sellStock(id, qty);
+    });
+  });
+}
+
+function renderPlayerCards(){
+  const wrap = document.getElementById('playerCardsWrap');
+  wrap.innerHTML='';
+  G.players.forEach((p,i)=>{
+    const card = el('div','playerCard'+(i===G.currentIndex?' current':''));
+    card.innerHTML =
+      '<span class="dot" style="background:'+p.color+'"></span>'+
+      '<span class="pname">'+p.name+'</span>'+
+      '<span class="pstats">'+
+        '<span>현금 <b>'+fmt(p.cash)+'</b></span>'+
+        '<span>대출 <b>'+fmt(p.loan)+'</b></span>'+
+        '<span>순자산 <b>'+fmt(netWorth(p))+'</b></span>'+
+      '</span>';
+    wrap.appendChild(card);
+  });
+}
+
+function renderFinance(){
+  const p = currentPlayer();
+  const box = document.getElementById('financeBox');
+  const room = maxLoanFor(p);
+  const nw = netWorth(p);
+  const ratio = clamp((p.loan/((p.cash+portfolioValue(p))*LEVERAGE_MULT||1))*100,0,100);
+  box.innerHTML =
+    '<div class="row"><span>보유 현금</span><b>'+fmt(p.cash)+'</b></div>'+
+    '<div class="row"><span>대출 잔액</span><b>'+fmt(p.loan)+'</b></div>'+
+    '<div class="row"><span>포트폴리오 평가액</span><b>'+fmt(portfolioValue(p))+'</b></div>'+
+    '<div class="row"><span>순자산</span><b>'+fmt(nw)+'</b></div>'+
+    '<div class="row"><span>추가 대출 가능액 (레버리지 '+LEVERAGE_MULT+'배)</span><b>'+fmt(room)+'</b></div>'+
+    '<div class="leverageBar"><div class="fill" style="width:'+ratio+'%"></div></div>'+
+    '<div class="actions">'+
+      '<input type="number" id="loanAmt" placeholder="금액" min="0" value="50000">'+
+      '<button class="actionBtn gold" id="borrowBtn">대출 실행</button>'+
+      '<button class="actionBtn" id="repayBtn">상환</button>'+
+    '</div>'+
+    '<div style="margin-top:.9rem;padding-top:.8rem;border-top:1px solid var(--border);">'+
+      '<button class="actionBtn gold" id="insiderBtn" '+((!G.insiderAvailableThisTurn||p.insiderUsedThisTurn)?'disabled':'')+' style="width:100%;">'+
+      (p.insiderUsedThisTurn? '이번 턴 정보 취재 완료' : (G.insiderAvailableThisTurn? '특종 정보 열람 (비용 '+fmt(Math.max(3000, Math.round(p.cash*0.08/1000)*1000))+')' : '정보원 타일에서만 이용 가능'))+
+      '</button>'+
+    '</div>';
+  document.getElementById('borrowBtn').addEventListener('click', ()=>borrow(parseInt(document.getElementById('loanAmt').value)||0));
+  document.getElementById('repayBtn').addEventListener('click', ()=>repay(parseInt(document.getElementById('loanAmt').value)||0));
+  const ib = document.getElementById('insiderBtn');
+  if(ib) ib.addEventListener('click', useInsider);
+}
+
+function renderStandings(){
+  const table = document.getElementById('standingsTable');
+  const rows = G.players.map((p,i)=>({p,i,nw:netWorth(p)})).sort((a,b)=>b.nw-a.nw);
+  table.innerHTML =
+    '<tr><th>순위</th><th>투자자</th><th>현금</th><th>대출</th><th>순자산</th><th>Lap</th></tr>'+
+    rows.map((r,rank)=>
+      '<tr class="'+(r.i===G.currentIndex?'current':'')+'">'+
+      '<td>'+(rank+1)+'</td>'+
+      '<td class="name"><span class="dot" style="width:9px;height:9px;border-radius:50%;background:'+r.p.color+';display:inline-block;"></span>'+r.p.name+'</td>'+
+      '<td>'+fmt(r.p.cash)+'</td>'+
+      '<td>'+fmt(r.p.loan)+'</td>'+
+      '<td>'+fmt(r.nw)+'</td>'+
+      '<td>'+r.p.lap+'</td>'+
+      '</tr>'
+    ).join('');
+}
+
+function renderLog(){
+  const list = document.getElementById('logList');
+  list.innerHTML = G.log.slice(-60).map(l=>{
+    const cls = l.cls==='news'?'newsline':l.cls==='good'?'goodline':l.cls==='gold'?'goldline':'';
+    return '<li class="'+cls+'">'+l.text+'</li>';
+  }).join('');
+}
+
+function renderTicker(){
+  const track = document.getElementById('tickerTrack');
+  const parts = G.companies.map(c=>{
+    const prev = c.history.length>1? c.history[c.history.length-2]: c.price;
+    const delta = ((c.price-prev)/prev)*100;
+    const dir = delta>=0?'up':'down';
+    return '<span><b>'+c.name+'</b> '+c.price.toLocaleString('ko-KR')+'원 <span class="'+dir+'">'+(dir==='up'?'▲':'▼')+' '+pctStr(delta)+'</span></span>';
+  }).join('');
+  track.innerHTML = parts+parts;
+}
+
+function renderCenter(){
+  const p = currentPlayer();
+  document.getElementById('turnName').textContent = p.name+'님의 차례';
+  document.getElementById('turnName').style.color = p.color;
+  document.getElementById('rollBtn').disabled = G.hasRolled||G.animating||G.ended;
+  document.getElementById('endTurnBtn').disabled = !G.hasRolled||G.animating||G.ended;
+  document.getElementById('centerNews').textContent =
+    '턴 '+(G.turnCount+1)+' / '+G.maxTurns+' · Lap '+p.lap;
+}
+
+function renderHeader(){
+  document.getElementById('headerStatus').textContent =
+    G.players.length+'인 플레이 · 턴 '+Math.min(G.turnCount+1,G.maxTurns)+'/'+G.maxTurns;
+}
+
+function renderAll(){
+  if(!G) return;
+  renderBoardTokens();
+  renderPlayerCards();
+  renderStockGrid();
+  renderFinance();
+  renderStandings();
+  renderLog();
+  renderTicker();
+  renderCenter();
+  renderHeader();
+}
+
+/* ============ MODALS ============ */
+function showNewsModal(result){
+  const dir = result.pct>=0?'up':'down';
+  openModal(
+    '<div class="kicker">속보 · News Flash</div>'+
+    '<h3>'+result.headline+'</h3>'+
+    '<p>대상: '+result.target+'</p>'+
+    '<div class="impact '+dir+'">'+(dir==='up'?'▲ ':'▼ ')+result.detail+'</div>'
+  );
+}
+function showInsiderModal(r){
+  if(r.caught){
+    openModal(
+      '<div class="kicker" style="color:var(--critical)">적발 · Compliance Alert</div>'+
+      '<h3>정보원이 미행당했습니다</h3>'+
+      '<p>취재 비용 '+fmt(r.cost)+'에 더해 벌금 '+fmt(r.fine)+'이 부과되었습니다. 다음엔 더 조심하세요.</p>'
+    );
+  } else {
+    const dir = r.pct>=0?'up':'down';
+    openModal(
+      '<div class="kicker">특종 · Insider Memo</div>'+
+      '<h3>'+r.headline+'</h3>'+
+      '<p>대상: '+r.target+' · 취재 비용 '+fmt(r.cost)+'</p>'+
+      '<div class="impact '+dir+'">예상 변동 '+(dir==='up'?'▲ ':'▼ ')+pctStr(r.pct)+'</div>'+
+      '<p style="margin-top:.5rem;">이 카드는 아직 뽑히지 않았습니다 — 다음 뉴스 카드로 등장할 가능성이 높습니다.</p>'
+    );
+  }
+}
+function openModal(innerHtml){
+  const overlay = el('div','overlay');
+  overlay.id='modalOverlay';
+  const modal = el('div','modal', innerHtml+'<button class="closeBtn" id="modalClose">확인</button>');
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  document.getElementById('modalClose').addEventListener('click', ()=>overlay.remove());
+}
+
+/* ============ END GAME ============ */
+function endGame(){
+  G.ended=true;
+  const ranked = G.players.map(p=>({p,nw:netWorth(p)})).sort((a,b)=>b.nw-a.nw);
+  let bodyRows = ranked.map((r,i)=>
+    '<div class="rankRow"><span class="rank">'+(i+1)+'</span>'+
+    '<span class="dot" style="width:11px;height:11px;border-radius:50%;background:'+r.p.color+';display:inline-block;margin-right:.3rem;"></span>'+
+    '<span class="who">'+r.p.name+'</span><span class="val">'+fmt(r.nw)+'</span></div>'
+  ).join('');
+
+  const canvasId = 'endChart';
+  openModal(
+    '<div class="kicker">폐장 · Closing Bell</div>'+
+    '<h3>'+ranked[0].p.name+'님, 최종 승리!</h3>'+
+    bodyRows+
+    '<canvas id="'+canvasId+'" style="width:100%;height:140px;margin-top:.8rem;"></canvas>'+
+    '<div id="chartLegend"></div>'
+  );
+  const legend = document.getElementById('chartLegend');
+  legend.innerHTML = G.players.map(p=>'<span><i style="background:'+p.color+'"></i>'+p.name+'</span>').join('');
+  requestAnimationFrame(()=>drawEndChart(document.getElementById(canvasId)));
+  document.getElementById('rollBtn').disabled=true;
+  document.getElementById('endTurnBtn').disabled=true;
+}
+
+function drawEndChart(canvas){
+  const dpr = window.devicePixelRatio||1;
+  const w = canvas.clientWidth||360, h = canvas.clientHeight||140;
+  canvas.width=w*dpr; canvas.height=h*dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  const pad = 8;
+  const allVals = G.players.flatMap(p=>p.netWorthHistory.map(h=>h.value));
+  const min = Math.min(0,...allVals), max = Math.max(...allVals);
+  const range = (max-min)||1;
+  const maxTurn = Math.max(...G.players.map(p=>p.netWorthHistory[p.netWorthHistory.length-1].turn),1);
+  // gridlines
+  ctx.strokeStyle='rgba(255,255,255,0.07)';
+  ctx.lineWidth=1;
+  for(let i=0;i<=3;i++){
+    const y = pad+(h-pad*2)*(i/3);
+    ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(w-pad,y); ctx.stroke();
+  }
+  G.players.forEach(p=>{
+    const pts = p.netWorthHistory.map(pt=>[
+      pad+(pt.turn/maxTurn)*(w-pad*2),
+      h-pad-((pt.value-min)/range)*(h-pad*2)
+    ]);
+    ctx.beginPath();
+    pts.forEach((pt,i)=> i===0?ctx.moveTo(pt[0],pt[1]):ctx.lineTo(pt[0],pt[1]));
+    ctx.strokeStyle=p.color; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
+    const last = pts[pts.length-1];
+    ctx.beginPath(); ctx.arc(last[0],last[1],3.5,0,7); ctx.fillStyle=p.color; ctx.fill();
+  });
+}
+
+/* ============ SETUP UI ============ */
+let setupState = {count:2, names:['투자자 1','투자자 2','투자자 3','투자자 4'], length:18};
+
+function renderSetup(){
+  const countWrap = document.getElementById('playerCountChoice');
+  countWrap.innerHTML='';
+  [2,3,4].forEach(n=>{
+    const chip = el('div','chip'+(setupState.count===n?' active':''), n+'명');
+    chip.addEventListener('click', ()=>{ setupState.count=n; renderSetup(); });
+    countWrap.appendChild(chip);
+  });
+  const nameRows = document.getElementById('nameRows');
+  nameRows.innerHTML='';
+  for(let i=0;i<setupState.count;i++){
+    const row = el('div','nameRow');
+    const swatch = el('span','swatch'); swatch.style.background=PLAYER_COLORS[i];
+    row.appendChild(swatch);
+    const input = document.createElement('input');
+    input.value = setupState.names[i];
+    input.maxLength=10;
+    input.addEventListener('input', e=> setupState.names[i]=e.target.value||('투자자 '+(i+1)));
+    row.appendChild(input);
+    nameRows.appendChild(row);
+  }
+  const lenWrap = document.getElementById('lengthChoice');
+  lenWrap.innerHTML='';
+  [[12,'짧게'],[18,'보통'],[24,'길게']].forEach(([v,label])=>{
+    const chip = el('div','chip'+(setupState.length===v?' active':''), label+' · 1인당 '+v+'턴');
+    chip.addEventListener('click', ()=>{ setupState.length=v; renderSetup(); });
+    lenWrap.appendChild(chip);
+  });
+  document.getElementById('lengthHelp').textContent =
+    '총 '+(setupState.length*setupState.count)+'턴 진행 후 순자산(현금+주식평가액-대출)이 가장 높은 투자자가 승리합니다.';
+}
+
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  const names = setupState.names.slice(0,setupState.count);
+  newGame(names, setupState.length);
+  document.getElementById('setupScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  buildBoard();
+  startTurn();
+});
+
+document.querySelectorAll('.tabBtn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tabBtn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tabPane').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('pane-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+renderSetup();
+})();
+</script>
