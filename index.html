@@ -1,3 +1,6 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>주가조작단 — 트레이딩 보드게임</title>
 <style>
 :root{
@@ -113,7 +116,7 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 .nameRow{display:flex;align-items:center;gap:.6rem;margin-top:.6rem;}
 .nameRow .swatch{width:14px;height:14px;border-radius:50%;flex:none;}
 .nameRow input{
-  flex:1;background:var(--panel-2);border:1px solid var(--border-strong);border-radius:7px;
+  flex:1;min-width:0;background:var(--panel-2);border:1px solid var(--border-strong);border-radius:7px;
   color:var(--ink);padding:.5rem .7rem;font-size:.9rem;
 }
 .helpText{font-size:.78rem;color:var(--ink-3);margin-top:.6rem;line-height:1.5;}
@@ -126,7 +129,7 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 .bigBtn:disabled{opacity:.4;cursor:not-allowed;filter:none;}
 .inviteRow{display:flex;gap:.4rem;margin-top:.4rem;}
 .inviteRow input{
-  flex:1;background:var(--panel-2);border:1px solid var(--border-strong);border-radius:7px;
+  flex:1;min-width:0;background:var(--panel-2);border:1px solid var(--border-strong);border-radius:7px;
   color:var(--ink);padding:.5rem .7rem;font-size:.78rem;font-family:var(--mono);
 }
 .lobbySlot{display:flex;align-items:center;gap:.6rem;padding:.5rem .2rem;border-bottom:1px solid var(--border);font-size:.88rem;}
@@ -144,13 +147,13 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 .tile{
   position:relative;background:var(--panel);border:1px solid var(--border);border-radius:6px;
   display:flex;flex-direction:column;justify-content:space-between;
-  padding:.3rem .35rem;overflow:hidden;font-size:.62rem;
+  padding:clamp(.15rem,.9vw,.3rem) clamp(.18rem,1vw,.35rem);overflow:hidden;font-size:.62rem;
 }
 .tile .tType{
-  font-size:.58rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);
+  font-size:clamp(.46rem,1.7vw,.58rem);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);
 }
-.tile .tName{font-size:.66rem;font-weight:600;color:var(--ink);line-height:1.15;}
-.tile .tPrice{font-family:var(--mono);font-size:.66rem;color:var(--ink-2);}
+.tile .tName{font-size:clamp(.5rem,2vw,.66rem);font-weight:600;color:var(--ink);line-height:1.15;}
+.tile .tPrice{font-family:var(--mono);font-size:clamp(.5rem,1.9vw,.66rem);color:var(--ink-2);}
 .tile.company{border-top:2px solid var(--tileColor,var(--accent));}
 .tile.news{background:linear-gradient(160deg,var(--panel),rgba(226,87,79,0.09));}
 .tile.insider{background:linear-gradient(160deg,var(--panel),rgba(201,163,92,0.14));}
@@ -158,24 +161,24 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 .tile.payday{background:linear-gradient(160deg,var(--panel),rgba(47,191,79,0.13));border:1px solid var(--good);}
 .tile .tokens{position:absolute;right:3px;bottom:3px;display:flex;gap:2px;flex-wrap:wrap-reverse;max-width:70%;justify-content:flex-end;}
 .token{
-  width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-size:.55rem;font-weight:700;color:#000;border:1.5px solid rgba(0,0,0,0.5);
+  width:clamp(11px,3.4vw,16px);height:clamp(11px,3.4vw,16px);border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:clamp(.4rem,1.5vw,.55rem);font-weight:700;color:#000;border:1.5px solid rgba(0,0,0,0.5);
   box-shadow:0 1px 3px rgba(0,0,0,.5);flex:none;
 }
 .centerPanel{
   grid-column:2/6;grid-row:2/6;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;padding:1rem;text-align:center;
 }
-.centerPanel .turnLabel{font-size:.68rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);}
-.centerPanel .turnName{font-family:var(--serif);font-size:1.3rem;font-weight:700;}
+.centerPanel .turnLabel{font-size:clamp(.56rem,1.8vw,.68rem);letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);}
+.centerPanel .turnName{font-family:var(--serif);font-size:clamp(.85rem,3.6vw,1.3rem);font-weight:700;}
 .diceRow{display:flex;gap:.5rem;}
 .die{
-  width:42px;height:42px;border-radius:8px;background:var(--panel-3);border:1px solid var(--border-strong);
-  display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--accent-strong);
+  width:clamp(30px,8vw,42px);height:clamp(30px,8vw,42px);border-radius:8px;background:var(--panel-3);border:1px solid var(--border-strong);
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:clamp(.9rem,3.2vw,1.3rem);font-weight:700;color:var(--accent-strong);
 }
 .rollBtn{
-  padding:.65rem 1.4rem;border-radius:8px;border:1px solid var(--accent);background:var(--accent-wash);
-  color:var(--accent-strong);font-weight:700;cursor:pointer;font-size:.9rem;
+  padding:clamp(.5rem,2.2vw,.65rem) clamp(.8rem,3.6vw,1.4rem);border-radius:8px;border:1px solid var(--accent);background:var(--accent-wash);
+  color:var(--accent-strong);font-weight:700;cursor:pointer;font-size:clamp(.78rem,2.6vw,.9rem);min-height:40px;
 }
 .rollBtn:hover:not(:disabled){background:var(--accent);color:#1a1200;}
 .rollBtn:disabled{opacity:.35;cursor:not-allowed;}
@@ -194,8 +197,8 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 .turnTimerBar{height:100%;width:100%;background:var(--good);transition:width 1s linear, background .3s;}
 .turnTimerText{font-family:var(--mono);font-size:.68rem;color:var(--ink-3);margin-top:.15rem;}
 .endTurnBtn{
-  padding:.55rem 1.2rem;border-radius:8px;border:1px solid var(--border-strong);background:var(--panel-3);
-  color:var(--ink);cursor:pointer;font-size:.85rem;
+  padding:clamp(.4rem,2vw,.55rem) clamp(.6rem,3vw,1.2rem);border-radius:8px;border:1px solid var(--border-strong);background:var(--panel-3);
+  color:var(--ink);cursor:pointer;font-size:clamp(.72rem,2.4vw,.85rem);min-height:40px;
 }
 .endTurnBtn:hover:not(:disabled){border-color:var(--good);color:var(--good);}
 .endTurnBtn:disabled{opacity:.3;cursor:not-allowed;}
@@ -260,7 +263,7 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 .financeBox{border:1px solid var(--border);border-radius:8px;padding:.85rem;background:var(--panel);margin-bottom:.7rem;}
 .financeBox .row{display:flex;justify-content:space-between;font-size:.82rem;padding:.25rem 0;color:var(--ink-2);}
 .financeBox .row b{color:var(--ink);font-family:var(--mono);}
-.financeBox .actions{display:flex;gap:.4rem;margin-top:.6rem;}
+.financeBox .actions{display:flex;gap:.4rem;margin-top:.6rem;flex-wrap:wrap;}
 .financeBox input{
   width:100px;background:var(--panel-2);border:1px solid var(--border-strong);border-radius:6px;
   color:var(--ink);padding:.4rem .5rem;font-family:var(--mono);font-size:.8rem;
@@ -287,6 +290,29 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
 #logList li.newsline{border-color:var(--critical);}
 #logList li.goodline{border-color:var(--good);}
 #logList li.goldline{border-color:var(--accent);}
+
+/* ---------- Mobile ---------- */
+@media (max-width:760px){
+  #app{padding:.85rem .85rem 2.5rem;}
+  header.masthead{flex-direction:column;align-items:flex-start;gap:.3rem;padding-bottom:.65rem;margin-bottom:.9rem;}
+  header .status{text-align:left;}
+  #gameScreen{gap:.9rem;}
+  .boardWrap,.sidebar{min-width:0;flex-basis:100%;}
+  .boardWrap{max-width:520px;margin:0 auto;}
+}
+@media (max-width:480px){
+  header.masthead h1{font-size:1.5rem;}
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;}
+  .tabBtn{padding:.5rem .65rem;font-size:.76rem;white-space:nowrap;flex:none;}
+  table.standings{min-width:460px;}
+  .card{padding:1.1rem 1.1rem;}
+}
+@media (max-width:600px){
+  .nameRow input, .inviteRow input, .financeBox input, .sc-trade input{font-size:16px;}
+  .sc-trade input{width:48px;}
+  .financeBox input{width:88px;}
+  .miniBtn, .actionBtn{min-height:36px;}
+}
 
 /* ---------- Modal ---------- */
 .overlay{
@@ -397,7 +423,9 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
       </div>
 
       <div class="tabPane" id="pane-rank">
-        <table class="standings" id="standingsTable"></table>
+        <div style="overflow-x:auto;">
+          <table class="standings" id="standingsTable"></table>
+        </div>
         <div class="helpText" style="margin-top:1.1rem;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;">전체 보유 종목</div>
         <div style="overflow-x:auto;margin-top:.4rem;">
           <table class="standings" id="holdingsTable"></table>
@@ -1047,7 +1075,7 @@ function buildBoard(){
     '<div class="turnLabel" id="turnLabel">현재 차례</div>'+
     '<div class="turnName" id="turnName"></div>'+
     '<div class="diceRow"><div class="die" id="die1">-</div><div class="die" id="die2">-</div></div>'+
-    '<div style="display:flex;gap:.5rem;">'+
+    '<div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;">'+
       '<button class="rollBtn" id="rollBtn">주사위 굴리기</button>'+
       '<button class="endTurnBtn" id="endTurnBtn">턴 종료</button>'+
     '</div>'+
