@@ -247,7 +247,7 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 .stockCard canvas{width:100%;height:34px;display:block;margin:.3rem 0;}
 .sc-hold{font-size:.7rem;color:var(--ink-3);margin-bottom:.35rem;}
 .sc-hold b{color:var(--ink-2);}
-.sc-trade{display:flex;gap:.35rem;align-items:center;}
+.sc-trade{display:flex;gap:.35rem;align-items:center;flex-wrap:wrap;}
 .sc-trade input{
   width:52px;background:var(--panel-2);border:1px solid var(--border-strong);border-radius:5px;
   color:var(--ink);padding:.3rem;font-size:.75rem;font-family:var(--mono);text-align:center;
@@ -258,6 +258,8 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 }
 .miniBtn.buy:hover:not(:disabled){border-color:var(--good);color:var(--good);}
 .miniBtn.sell:hover:not(:disabled){border-color:var(--critical);color:var(--critical);}
+.miniBtn.max{flex:0 0 auto;}
+.miniBtn.max:hover:not(:disabled){border-color:var(--accent);color:var(--accent-strong);}
 .miniBtn:disabled{opacity:.35;cursor:not-allowed;}
 
 .financeBox{border:1px solid var(--border);border-radius:8px;padding:.85rem;background:var(--panel);margin-bottom:.7rem;}
@@ -780,6 +782,7 @@ function execBuy(playerIndex, companyId, qty){
   p.cash -= cost;
   p.holdings[companyId] = (p.holdings[companyId]||0)+qty;
   logMsg(p.name+'님이 '+c.name+' '+qty+'주 매수 ('+fmt(cost)+')', '');
+  applyTradeImpact(c, qty, 1);
 }
 function execSell(playerIndex, companyId, qty){
   const p = G.players[playerIndex];
@@ -791,6 +794,14 @@ function execSell(playerIndex, companyId, qty){
   p.cash += proceeds;
   p.holdings[companyId] -= qty;
   logMsg(p.name+'님이 '+c.name+' '+qty+'주 매도 ('+fmt(proceeds)+')', '');
+  applyTradeImpact(c, qty, -1);
+}
+function applyTradeImpact(c, qty, direction){
+  // buying pushes the price up, selling pushes it down — bigger orders move it more,
+  // capped per trade so one huge order can't single-handedly crash/rocket a stock
+  const impactPct = Math.min(8, qty*0.4) * direction;
+  c.price = Math.max(500, Math.round(c.price*(1+impactPct/100)));
+  pushHistory(c);
 }
 function execBorrow(playerIndex, amount){
   const p = G.players[playerIndex];
@@ -812,7 +823,11 @@ function execRepay(playerIndex, amount){
   logMsg(p.name+'님이 대출 '+fmt(amt)+'을 상환했습니다.', 'good');
 }
 function maxLoanFor(p){
-  return Math.max(0, Math.round((p.cash+portfolioValue(p))*LEVERAGE_MULT - p.loan));
+  // Cap total debt at LEVERAGE_MULT × net worth. Net worth (cash+portfolio-loan) is
+  // unchanged by a borrow itself (cash and loan rise together), so this cap actually
+  // shrinks as you borrow — unlike a cash-based formula, which let repeated borrows
+  // inflate their own collateral and allowed unlimited borrowing.
+  return Math.max(0, Math.round(LEVERAGE_MULT*netWorth(p) - p.loan));
 }
 
 function execInsider(playerIndex){
@@ -1172,12 +1187,15 @@ function renderStockGrid(){
     card.appendChild(el('div','sc-delta '+dir, (dir==='up'?'▲ ':'▼ ')+pctStr(delta)));
     const canvas = document.createElement('canvas');
     card.appendChild(canvas);
+    const myCash = (myPlayerIndex>=0 && G.players[myPlayerIndex])? G.players[myPlayerIndex].cash : 0;
     const held = (myPlayerIndex>=0 && G.players[myPlayerIndex])? (G.players[myPlayerIndex].holdings[c.id]||0) : 0;
+    const maxAffordable = Math.floor(myCash/(c.price*(1+TRADE_FEE)));
     card.appendChild(el('div','sc-hold', '내 보유 <b>'+held+'주</b> · 평가액 <b>'+fmt(held*c.price)+'</b>'));
     const trade = el('div','sc-trade');
     trade.innerHTML =
       '<input type="number" min="1" value="1" id="qty-'+c.id+'">'+
       '<button class="miniBtn buy" data-act="buy" data-id="'+c.id+'" '+(!myTurn?'disabled':'')+'>매수</button>'+
+      '<button class="miniBtn max" data-act="max" data-id="'+c.id+'" '+((!myTurn||maxAffordable<1)?'disabled':'')+' title="가진 돈으로 살 수 있는 최대 수량">최대'+(maxAffordable>=1?' ('+maxAffordable+')':'')+'</button>'+
       '<button class="miniBtn sell" data-act="sell" data-id="'+c.id+'" '+((!myTurn||held<=0)?'disabled':'')+'>매도</button>';
     card.appendChild(trade);
     grid.appendChild(card);
@@ -1186,6 +1204,15 @@ function renderStockGrid(){
   grid.querySelectorAll('button[data-act]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const id = btn.dataset.id;
+      if(btn.dataset.act==='max'){
+        const me = G.players[myPlayerIndex];
+        const maxQty = Math.floor(me.cash/(company(id).price*(1+TRADE_FEE)));
+        if(maxQty>=1){
+          document.getElementById('qty-'+id).value = maxQty;
+          uiBuy(id, maxQty);
+        }
+        return;
+      }
       const qty = parseInt(document.getElementById('qty-'+id).value)||1;
       if(btn.dataset.act==='buy') uiBuy(id, qty); else uiSell(id, qty);
     });
@@ -1221,7 +1248,7 @@ function renderFinance(){
     '<div class="row"><span>대출 잔액</span><b>'+fmt(p.loan)+'</b></div>'+
     '<div class="row"><span>포트폴리오 평가액</span><b>'+fmt(portfolioValue(p))+'</b></div>'+
     '<div class="row"><span>순자산</span><b>'+fmt(nw)+'</b></div>'+
-    '<div class="row"><span>추가 대출 가능액 (레버리지 '+LEVERAGE_MULT+'배)</span><b>'+fmt(room)+'</b></div>'+
+    '<div class="row"><span>추가 대출 가능액 (순자산 대비 '+LEVERAGE_MULT+'배 한도)</span><b>'+fmt(room)+'</b></div>'+
     '<div class="row"><span>대출 이자율</span><b>5% · 5턴마다 부과 (다음 정산: 턴 '+(Math.ceil((G.turnCount+1)/5)*5)+')</b></div>'+
     '<div class="leverageBar"><div class="fill" style="width:'+ratio+'%"></div></div>'+
     '<div class="actions">'+
