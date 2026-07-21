@@ -91,7 +91,7 @@ header.masthead .sub{
 }
 header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-align:right;}
 
-/* ---------- Setup ---------- */
+/* ---------- Setup / Lobby ---------- */
 #setupScreen{max-width:640px;margin:2rem auto;}
 .card{
   background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
@@ -122,8 +122,16 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
   background:linear-gradient(180deg,var(--accent-strong),var(--accent));color:#1a1200;
   font-weight:700;font-size:.95rem;letter-spacing:.02em;cursor:pointer;
 }
-.bigBtn:hover{filter:brightness(1.06);}
+.bigBtn:hover:not(:disabled){filter:brightness(1.06);}
 .bigBtn:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+.inviteRow{display:flex;gap:.4rem;margin-top:.4rem;}
+.inviteRow input{
+  flex:1;background:var(--panel-2);border:1px solid var(--border-strong);border-radius:7px;
+  color:var(--ink);padding:.5rem .7rem;font-size:.78rem;font-family:var(--mono);
+}
+.lobbySlot{display:flex;align-items:center;gap:.6rem;padding:.5rem .2rem;border-bottom:1px solid var(--border);font-size:.88rem;}
+.lobbySlot:last-child{border-bottom:none;}
+.lobbySlot .tag{margin-left:auto;font-size:.66rem;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase;}
 
 /* ---------- Game layout ---------- */
 #gameScreen{display:flex;gap:1.25rem;align-items:flex-start;flex-wrap:wrap;}
@@ -181,6 +189,10 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 
 /* ---------- Sidebar ---------- */
 .sidebar{flex:1 1 380px;min-width:320px;display:flex;flex-direction:column;gap:.9rem;}
+#myIdentity{
+  font-size:.8rem;padding:.5rem .75rem;border:1px solid var(--border);border-radius:8px;background:var(--panel);
+}
+#myIdentity b{font-weight:700;}
 .tabs{display:flex;gap:.3rem;border-bottom:1px solid var(--border);}
 .tabBtn{
   background:none;border:none;color:var(--ink-3);padding:.55rem .9rem;font-size:.82rem;cursor:pointer;
@@ -195,6 +207,7 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
   display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem;
 }
 .playerCard.current{border-color:var(--accent);background:var(--accent-wash);}
+.playerCard.me{outline:1px dashed var(--border-strong);}
 .playerCard .dot{width:11px;height:11px;border-radius:50%;flex:none;}
 .playerCard .pname{font-weight:700;flex:1;font-size:.88rem;}
 .playerCard .pstats{display:flex;gap:.9rem;font-family:var(--mono);font-size:.76rem;color:var(--ink-2);}
@@ -226,8 +239,8 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
   border:1px solid var(--border-strong);background:var(--panel-2);color:var(--ink);border-radius:5px;
   padding:.3rem .55rem;font-size:.72rem;cursor:pointer;flex:1;
 }
-.miniBtn.buy:hover{border-color:var(--good);color:var(--good);}
-.miniBtn.sell:hover{border-color:var(--critical);color:var(--critical);}
+.miniBtn.buy:hover:not(:disabled){border-color:var(--good);color:var(--good);}
+.miniBtn.sell:hover:not(:disabled){border-color:var(--critical);color:var(--critical);}
 .miniBtn:disabled{opacity:.35;cursor:not-allowed;}
 
 .financeBox{border:1px solid var(--border);border-radius:8px;padding:.85rem;background:var(--panel);margin-bottom:.7rem;}
@@ -301,28 +314,48 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
   <header class="masthead">
     <div>
       <h1>주가<span>조작</span>단</h1>
-      <div class="sub">Insider Trading Board Game · 2–4인용 증권 트레이딩 보드게임</div>
+      <div class="sub">Insider Trading Board Game · 2–4인용 실시간 온라인 보드게임</div>
     </div>
     <div class="status" id="headerStatus"></div>
   </header>
 
-  <!-- ========== SETUP ========== -->
+  <!-- ========== SETUP / LOBBY ========== -->
   <div id="setupScreen">
-    <div class="card">
-      <h2>참가 인원 <small>2 – 4명</small></h2>
-      <div class="rowChoice" id="playerCountChoice"></div>
+    <div class="card" id="createCard">
+      <h2>새 게임 만들기 <small>호스트</small></h2>
+      <div class="nameRow"><span class="swatch" style="background:#3987e5"></span><input id="createNameInput" placeholder="당신의 이름" maxlength="10" value="호스트"></div>
+      <div style="margin-top:1rem;">
+        <div class="helpText" style="margin-top:0;">게임 길이</div>
+        <div class="rowChoice" id="lengthChoice" style="margin-top:.5rem;"></div>
+      </div>
+      <div class="helpText">방을 만들면 초대 링크가 생성됩니다. 그 링크를 최대 3명의 친구에게 보내면, 각자 자기 스마트폰이나 PC로 접속해서 함께 실시간으로 플레이할 수 있습니다.</div>
+      <button class="bigBtn" id="createBtn">방 만들기</button>
     </div>
-    <div class="card">
-      <h2>투자자 등록</h2>
-      <div id="nameRows"></div>
-      <div class="helpText">각 투자자는 300,000원의 시드머니로 게임을 시작합니다. 자리를 돌아가며 주사위를 굴려 주식을 사고팔고, 대출(레버리지)로 몸집을 키우거나, 정보원 타일에서 특종 정보를 사서 앞서갈 수 있습니다.</div>
+
+    <div class="card hidden" id="joinCard">
+      <h2>게임 참가하기</h2>
+      <div class="nameRow"><span class="swatch" style="background:#d95926"></span><input id="joinNameInput" placeholder="당신의 이름" maxlength="10" value="투자자"></div>
+      <div class="helpText">초대 링크로 들어오셨습니다. 이름을 입력하고 참가 버튼을 누르세요.</div>
+      <button class="bigBtn" id="joinBtn">참가하기</button>
     </div>
-    <div class="card">
-      <h2>게임 길이</h2>
-      <div class="rowChoice" id="lengthChoice"></div>
-      <div class="helpText" id="lengthHelp"></div>
+
+    <div class="card hidden" id="lobbyCard">
+      <h2>대기실</h2>
+      <div id="inviteBox" class="hidden">
+        <div class="helpText" style="margin-top:0;">아래 링크를 친구에게 공유하세요 (최대 4명, 본인 포함):</div>
+        <div class="inviteRow">
+          <input id="inviteLink" readonly>
+          <button class="actionBtn gold" id="copyLinkBtn">복사</button>
+        </div>
+      </div>
+      <div id="lobbyList" style="margin-top:1rem;"></div>
+      <button class="bigBtn hidden" id="startGameBtn">게임 시작</button>
+      <div class="helpText hidden" id="waitingText">호스트가 게임을 시작하면 자동으로 게임 화면으로 전환됩니다.</div>
     </div>
-    <button class="bigBtn" id="startBtn">거래 개시 — 게임 시작</button>
+
+    <div class="card">
+      <div class="helpText" id="netStatus" style="margin-top:0;">연결 준비 중…</div>
+    </div>
   </div>
 
   <!-- ========== GAME ========== -->
@@ -331,6 +364,7 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
       <div class="board" id="board"></div>
     </div>
     <div class="sidebar">
+      <div id="myIdentity"></div>
       <div class="tabs">
         <button class="tabBtn active" data-tab="trade">거래소</button>
         <button class="tabBtn" data-tab="finance">금융센터</button>
@@ -359,6 +393,7 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 (function(){
 "use strict";
@@ -429,7 +464,6 @@ const TILE_DEFS = [
   {type:'news'},
   {type:'company', c:'amazon'},
 ];
-// grid position per index (perimeter of 6x6)
 function gridPos(i){
   if(i<=5) return {col:i+1, row:6};
   if(i<=9) return {col:6, row:6-(i-5)};
@@ -445,6 +479,10 @@ const LEVERAGE_MULT = 2;
 
 /* ============ STATE ============ */
 let G = null;
+let myPlayerIndex = -1;
+let lobby = []; // [{peerId,name}] — authoritative on host
+let pendingSettings = { turnsPerPlayer: 18 };
+const NET = { role:null, peer:null, hostConn:null, guestConns:{}, myPeerId:null };
 
 function fmt(n){ return Math.round(n).toLocaleString('ko-KR')+'원'; }
 function pctStr(n){ return (n>=0?'+':'')+n.toFixed(1)+'%'; }
@@ -460,7 +498,7 @@ function newGame(names, turnsPerPlayer){
   const players = names.map((name,i)=>({
     name, color:PLAYER_COLORS[i], cash:START_CASH, loan:0, pos:0, lap:0,
     holdings:{}, netWorthHistory:[{turn:0, value:START_CASH}],
-    insiderUsedThisTurn:false,
+    insiderUsedThisTurn:false, peerId:null,
   }));
   G = {
     companies, players,
@@ -497,7 +535,7 @@ function netWorth(p){ return p.cash + portfolioValue(p) - p.loan; }
 /* ============ MARKET ============ */
 function applyMarketDrift(){
   G.companies.forEach(c=>{
-    const drift = (Math.random()*6-3)/100; // -3%..+3%
+    const drift = (Math.random()*6-3)/100;
     c.price = Math.max(500, Math.round(c.price*(1+drift)));
     pushHistory(c);
   });
@@ -508,19 +546,13 @@ function pushHistory(c){
 }
 
 function drawCard(){
-  if(G.drawPile.length===0){
-    G.drawPile = shuffle(G.discardPile);
-    G.discardPile = [];
-  }
+  if(G.drawPile.length===0){ G.drawPile=shuffle(G.discardPile); G.discardPile=[]; }
   const card = G.drawPile.pop();
   G.discardPile.push(card);
   return card;
 }
 function peekCard(){
-  if(G.drawPile.length===0){
-    G.drawPile = shuffle(G.discardPile);
-    G.discardPile = [];
-  }
+  if(G.drawPile.length===0){ G.drawPile=shuffle(G.discardPile); G.discardPile=[]; }
   return G.drawPile[G.drawPile.length-1];
 }
 function applyCard(card){
@@ -545,15 +577,14 @@ function applyCard(card){
 function checkMarginCalls(){
   G.players.forEach(p=>{
     if(p.loan<=0) return;
-    let nw = netWorth(p);
-    if(nw>=0) return;
+    if(netWorth(p)>=0) return;
     logMsg(p.name+' 마진콜 발생! 보유 주식을 강제 매각합니다.', 'news');
     const held = Object.keys(p.holdings).filter(id=>p.holdings[id]>0)
       .sort((a,b)=> (p.holdings[b]*company(b).price)-(p.holdings[a]*company(a).price));
     for(const id of held){
       if(p.loan<=p.cash) break;
       const qty = p.holdings[id];
-      const proceeds = qty*company(id).price*0.9; // fire sale
+      const proceeds = qty*company(id).price*0.9;
       p.cash += proceeds;
       p.holdings[id]=0;
       const payoff = Math.min(p.loan, p.cash);
@@ -567,42 +598,14 @@ function checkMarginCalls(){
   });
 }
 
-/* ============ TURN FLOW ============ */
-function startTurn(){
+/* ============ HOST-ONLY GAME LOGIC ============ */
+function beginTurn(){
   const p = currentPlayer();
   p.insiderUsedThisTurn=false;
   G.hasRolled=false;
   G.insiderAvailableThisTurn=false;
   applyMarketDrift();
   checkMarginCalls();
-  renderAll();
-}
-
-function rollDice(){
-  if(G.hasRolled||G.animating||G.ended) return;
-  G.hasRolled=true;
-  G.animating=true;
-  const d1=1+Math.floor(Math.random()*6), d2=1+Math.floor(Math.random()*6);
-  const steps=d1+d2;
-  document.getElementById('die1').textContent=d1;
-  document.getElementById('die2').textContent=d2;
-  renderAll();
-  const p = currentPlayer();
-  let moved=0;
-  const timer = setInterval(()=>{
-    p.pos = (p.pos+1)%20;
-    moved++;
-    if(p.pos===0){
-      passStart(p);
-    }
-    renderBoardTokens();
-    if(moved>=steps){
-      clearInterval(timer);
-      G.animating=false;
-      resolveTile(p);
-      renderAll();
-    }
-  },130);
 }
 
 function passStart(p){
@@ -622,13 +625,15 @@ function resolveTile(p){
     const card = drawCard();
     const result = applyCard(card);
     logMsg('[속보] '+result.headline+' → '+result.detail, 'news');
-    showNewsModal(result);
+    return {kind:'news', result};
   } else if(tile.type==='insider'){
     G.insiderAvailableThisTurn=true;
     logMsg(p.name+'님이 정보원 타일에 도착했습니다. 이번 턴, 특종 정보를 열람할 수 있습니다.', 'gold');
+    return {kind:'insider-tile'};
   } else if(tile.type==='bank'){
     p.cash += 3000;
     logMsg(p.name+'님이 은행에 들러 이자 캐시백 '+fmt(3000)+'을 받았습니다.', 'good');
+    return {kind:'bank'};
   } else if(tile.type==='company'){
     const c = company(tile.c);
     const qty = p.holdings[tile.c]||0;
@@ -639,94 +644,263 @@ function resolveTile(p){
     } else {
       logMsg(p.name+'님이 '+c.name+' 타일에 도착했습니다.', '');
     }
+    return {kind:'company', id:tile.c};
   } else if(tile.type==='payday'){
     logMsg(p.name+'님이 월급날 칸에 정확히 도착했습니다!', 'good');
+    return {kind:'payday'};
   }
 }
 
-function endTurn(){
-  if(!G.hasRolled||G.animating||G.ended) return;
+function execRoll(){
   const p = currentPlayer();
-  p.netWorthHistory.push({turn:G.turnCount+1, value:netWorth(p)});
-  G.turnCount++;
-  if(G.turnCount>=G.maxTurns){
-    endGame();
-    return;
-  }
-  G.currentIndex = (G.currentIndex+1)%G.players.length;
-  startTurn();
+  const playerIndex = G.currentIndex;
+  const d1=1+Math.floor(Math.random()*6), d2=1+Math.floor(Math.random()*6);
+  const steps=d1+d2;
+  const from=p.pos;
+  G.hasRolled=true;
+  for(let s=0;s<steps;s++){ p.pos=(p.pos+1)%20; if(p.pos===0) passStart(p); }
+  const tileInfo = resolveTile(p);
+  return {kind:'roll', playerIndex, from, steps, dice:[d1,d2], tileInfo};
 }
 
-/* ============ TRADING ============ */
-function buyStock(companyId, qty){
-  const p = currentPlayer();
-  if(G.animating||G.ended||qty<=0) return;
+function execBuy(playerIndex, companyId, qty){
+  const p = G.players[playerIndex];
+  qty = parseInt(qty)||0;
+  if(qty<=0) return;
   const c = company(companyId);
+  if(!c) return;
   const cost = c.price*qty*(1+TRADE_FEE);
-  if(cost>p.cash){ logMsg('현금이 부족합니다.', 'news'); renderAll(); return; }
+  if(cost>p.cash){ logMsg('현금이 부족합니다.', 'news'); return; }
   p.cash -= cost;
   p.holdings[companyId] = (p.holdings[companyId]||0)+qty;
   logMsg(p.name+'님이 '+c.name+' '+qty+'주 매수 ('+fmt(cost)+')', '');
-  renderAll();
 }
-function sellStock(companyId, qty){
-  const p = currentPlayer();
-  if(G.animating||G.ended||qty<=0) return;
+function execSell(playerIndex, companyId, qty){
+  const p = G.players[playerIndex];
+  qty = parseInt(qty)||0;
   const have = p.holdings[companyId]||0;
-  if(qty>have){ logMsg('보유 수량보다 많이 팔 수 없습니다.', 'news'); renderAll(); return; }
+  if(qty<=0||qty>have){ logMsg('보유 수량보다 많이 팔 수 없습니다.', 'news'); return; }
   const c = company(companyId);
   const proceeds = c.price*qty*(1-TRADE_FEE);
   p.cash += proceeds;
   p.holdings[companyId] -= qty;
   logMsg(p.name+'님이 '+c.name+' '+qty+'주 매도 ('+fmt(proceeds)+')', '');
-  renderAll();
 }
-
-/* ============ FINANCE ============ */
+function execBorrow(playerIndex, amount){
+  const p = G.players[playerIndex];
+  amount = parseInt(amount)||0;
+  if(amount<=0) return;
+  const room = maxLoanFor(p);
+  const amt = Math.min(amount, room);
+  if(amt<=0){ logMsg('레버리지 한도를 초과했습니다.', 'news'); return; }
+  p.loan += amt; p.cash += amt;
+  logMsg(p.name+'님이 '+fmt(amt)+' 대출(레버리지)을 실행했습니다.', 'gold');
+}
+function execRepay(playerIndex, amount){
+  const p = G.players[playerIndex];
+  amount = parseInt(amount)||0;
+  if(amount<=0) return;
+  const amt = Math.min(amount, p.loan, p.cash);
+  if(amt<=0) return;
+  p.loan -= amt; p.cash -= amt;
+  logMsg(p.name+'님이 대출 '+fmt(amt)+'을 상환했습니다.', 'good');
+}
 function maxLoanFor(p){
   return Math.max(0, Math.round((p.cash+portfolioValue(p))*LEVERAGE_MULT - p.loan));
 }
-function borrow(amount){
-  const p = currentPlayer();
-  if(G.animating||G.ended||amount<=0) return;
-  const room = maxLoanFor(p);
-  const amt = Math.min(amount, room);
-  if(amt<=0){ logMsg('레버리지 한도를 초과했습니다.', 'news'); renderAll(); return; }
-  p.loan += amt; p.cash += amt;
-  logMsg(p.name+'님이 '+fmt(amt)+' 대출(레버리지)을 실행했습니다.', 'gold');
-  renderAll();
-}
-function repay(amount){
-  const p = currentPlayer();
-  if(G.animating||G.ended||amount<=0) return;
-  const amt = Math.min(amount, p.loan, p.cash);
-  if(amt<=0){ renderAll(); return; }
-  p.loan -= amt; p.cash -= amt;
-  logMsg(p.name+'님이 대출 '+fmt(amt)+'을 상환했습니다.', 'good');
-  renderAll();
-}
 
-/* ============ INSIDER PEEK ============ */
-function useInsider(){
-  const p = currentPlayer();
-  if(!G.insiderAvailableThisTurn||p.insiderUsedThisTurn||G.animating||G.ended) return;
+function execInsider(playerIndex){
+  const p = G.players[playerIndex];
+  if(!G.insiderAvailableThisTurn||p.insiderUsedThisTurn) return;
   const cost = Math.max(3000, Math.round(p.cash*0.08/1000)*1000);
-  if(p.cash<cost){ logMsg('정보 취재 비용이 부족합니다.', 'news'); return; }
+  if(p.cash<cost) return;
   p.cash -= cost;
   p.insiderUsedThisTurn = true;
   const caught = Math.random()<0.15;
+  let payload;
   if(caught){
     const fine = cost*2;
     p.cash -= fine;
     logMsg(p.name+'님, 정보 취재 중 금융감독원에 적발! 벌금 '+fmt(fine), 'news');
-    showInsiderModal({caught:true, cost, fine});
+    payload = {caught:true, cost, fine};
   } else {
     const card = peekCard();
     const target = card.c? company(card.c).name : '전체 시장';
     logMsg(p.name+'님이 '+fmt(cost)+'을 내고 특종 정보를 입수했습니다.', 'gold');
-    showInsiderModal({caught:false, cost, headline:card.h, target, pct:card.pct});
+    payload = {caught:false, cost, headline:card.h, target, pct:card.pct};
   }
-  renderAll();
+  deliverPrivate(playerIndex, {type:'privateModal', modal:{kind:'insider', payload}});
+}
+
+function execEndTurn(){
+  const p = currentPlayer();
+  p.netWorthHistory.push({turn:G.turnCount+1, value:netWorth(p)});
+  G.turnCount++;
+  if(G.turnCount>=G.maxTurns){
+    G.ended = true;
+    return {kind:'gameEnd'};
+  }
+  G.currentIndex = (G.currentIndex+1)%G.players.length;
+  beginTurn();
+  return null;
+}
+
+/* ============ NETWORK: HOST SIDE ============ */
+function processHostAction(playerIndex, action){
+  if(!G || playerIndex!==G.currentIndex) return;
+  let meta=null;
+  switch(action.type){
+    case 'roll': meta = execRoll(); break;
+    case 'buy': execBuy(playerIndex, action.companyId, action.qty); break;
+    case 'sell': execSell(playerIndex, action.companyId, action.qty); break;
+    case 'borrow': execBorrow(playerIndex, action.amount); break;
+    case 'repay': execRepay(playerIndex, action.amount); break;
+    case 'insider': execInsider(playerIndex); break;
+    case 'endTurn': meta = execEndTurn(); break;
+  }
+  hostBroadcastAndRender(meta);
+}
+function hostBroadcastAndRender(meta){
+  const msg = {type:'state', state:G, meta};
+  Object.values(NET.guestConns).forEach(c=>{ try{ c.send(msg); }catch(e){} });
+  playMeta(meta);
+}
+function deliverPrivate(playerIndex, msg){
+  const targetPeerId = G.players[playerIndex].peerId;
+  if(targetPeerId===NET.myPeerId){ handlePrivateMessage(msg); }
+  else if(NET.guestConns[targetPeerId]){ try{ NET.guestConns[targetPeerId].send(msg); }catch(e){} }
+}
+function handlePrivateMessage(msg){
+  if(msg.type==='privateModal' && msg.modal.kind==='insider'){ showInsiderModal(msg.modal.payload); }
+}
+
+function createRoom(name){
+  NET.role='host';
+  setNetStatus('연결 서버에 접속 중…');
+  NET.peer = new Peer();
+  NET.peer.on('open', id=>{
+    NET.myPeerId = id;
+    lobby = [{peerId:id, name}];
+    myPlayerIndex = 0;
+    document.getElementById('inviteLink').value = location.origin+location.pathname+'?room='+id;
+    document.getElementById('inviteBox').classList.remove('hidden');
+    document.getElementById('startGameBtn').classList.remove('hidden');
+    setNetStatus('연결 완료 — 링크를 공유하고 인원을 기다리세요.');
+    renderLobby();
+  });
+  NET.peer.on('connection', conn=>{
+    conn.on('open', ()=>{});
+    conn.on('data', data=> handleHostMessage(conn, data));
+    conn.on('close', ()=>{
+      delete NET.guestConns[conn.peer];
+      lobby = lobby.filter(l=>l.peerId!==conn.peer);
+      broadcastLobby();
+    });
+    NET.guestConns[conn.peer]=conn;
+  });
+  NET.peer.on('error', err=> setNetStatus('연결 오류: '+err.type));
+}
+function handleHostMessage(conn, data){
+  if(data.type==='join'){
+    if(G){ conn.send({type:'error', message:'이미 게임이 시작되어 참가할 수 없습니다.'}); return; }
+    if(lobby.length>=4){ conn.send({type:'error', message:'인원이 가득 찼습니다 (최대 4명).'}); return; }
+    lobby.push({peerId:conn.peer, name:(data.name||'투자자').slice(0,10)});
+    broadcastLobby();
+  } else if(data.type==='action'){
+    if(!G) return;
+    const idx = G.players.findIndex(pl=>pl.peerId===conn.peer);
+    if(idx<0) return;
+    processHostAction(idx, data.action);
+  }
+}
+function broadcastLobby(){
+  const msg = {type:'lobby', lobby};
+  Object.values(NET.guestConns).forEach(c=>{ try{c.send(msg);}catch(e){} });
+  renderLobby();
+}
+function hostStartGame(){
+  if(lobby.length<2) return;
+  newGame(lobby.map(l=>l.name), pendingSettings.turnsPerPlayer);
+  G.players.forEach((p,i)=> p.peerId = lobby[i].peerId);
+  beginTurn();
+  const msg = {type:'start', state:G};
+  Object.values(NET.guestConns).forEach(c=>{ try{c.send(msg);}catch(e){} });
+  enterGameScreen();
+}
+
+/* ============ NETWORK: GUEST SIDE ============ */
+function joinRoom(roomId, name){
+  NET.role='guest';
+  setNetStatus('연결 서버에 접속 중…');
+  NET.peer = new Peer();
+  NET.peer.on('open', id=>{
+    NET.myPeerId = id;
+    const conn = NET.peer.connect(roomId, {reliable:true});
+    NET.hostConn = conn;
+    conn.on('open', ()=>{ conn.send({type:'join', name}); setNetStatus('대기실 입장 중…'); });
+    conn.on('data', data=> handleGuestMessage(data));
+    conn.on('close', ()=> setNetStatus('호스트와 연결이 끊어졌습니다. 새로고침 후 다시 시도해 주세요.'));
+    conn.on('error', err=> setNetStatus('연결 오류가 발생했습니다.'));
+  });
+  NET.peer.on('error', err=> setNetStatus('연결 오류: '+err.type+' (링크를 다시 확인해 주세요)'));
+}
+function handleGuestMessage(data){
+  if(data.type==='lobby'){ lobby=data.lobby; setNetStatus(''); renderLobby(); }
+  else if(data.type==='start'){
+    G = data.state;
+    myPlayerIndex = G.players.findIndex(p=>p.peerId===NET.myPeerId);
+    enterGameScreen();
+  } else if(data.type==='state'){
+    G = data.state;
+    playMeta(data.meta);
+  } else if(data.type==='privateModal'){
+    handlePrivateMessage(data);
+  } else if(data.type==='error'){
+    setNetStatus(data.message);
+  }
+}
+function requestAction(action){
+  if(NET.role==='host'){ processHostAction(myPlayerIndex, action); }
+  else if(NET.hostConn){ try{ NET.hostConn.send({type:'action', action}); }catch(e){} }
+}
+
+/* ============ UI ACTION HOOKS (turn-gated) ============ */
+function uiRoll(){ if(myPlayerIndex!==G.currentIndex||G.hasRolled||G.animating||G.ended) return; requestAction({type:'roll'}); }
+function uiEndTurn(){ if(myPlayerIndex!==G.currentIndex||!G.hasRolled||G.animating||G.ended) return; requestAction({type:'endTurn'}); }
+function uiBuy(companyId, qty){ if(myPlayerIndex!==G.currentIndex||G.animating||G.ended) return; requestAction({type:'buy', companyId, qty}); }
+function uiSell(companyId, qty){ if(myPlayerIndex!==G.currentIndex||G.animating||G.ended) return; requestAction({type:'sell', companyId, qty}); }
+function uiBorrow(amount){ if(myPlayerIndex!==G.currentIndex||G.animating||G.ended) return; requestAction({type:'borrow', amount}); }
+function uiRepay(amount){ if(myPlayerIndex!==G.currentIndex||G.animating||G.ended) return; requestAction({type:'repay', amount}); }
+function uiInsider(){ if(myPlayerIndex!==G.currentIndex||!G.insiderAvailableThisTurn||G.animating||G.ended) return; requestAction({type:'insider'}); }
+
+/* ============ META PLAYBACK (animation + modals) ============ */
+function playMeta(meta){
+  if(meta && meta.kind==='roll'){
+    animateRoll(meta);
+  } else {
+    renderAll();
+    if(meta && meta.kind==='gameEnd'){ showEndGameModal(); }
+  }
+}
+function animateRoll(meta){
+  G.animating = true;
+  const die1 = document.getElementById('die1'), die2 = document.getElementById('die2');
+  if(die1) die1.textContent = meta.dice[0];
+  if(die2) die2.textContent = meta.dice[1];
+  const rollBtn = document.getElementById('rollBtn'), endBtn = document.getElementById('endTurnBtn');
+  if(rollBtn) rollBtn.disabled = true;
+  if(endBtn) endBtn.disabled = true;
+  let cur = meta.from, count=0;
+  const timer = setInterval(()=>{
+    cur = (cur+1)%20; count++;
+    renderBoardTokensAt(meta.playerIndex, cur);
+    if(count>=meta.steps){
+      clearInterval(timer);
+      G.animating = false;
+      renderAll();
+      if(meta.tileInfo && meta.tileInfo.kind==='news'){ showNewsModal(meta.tileInfo.result); }
+    }
+  },130);
 }
 
 /* ============ RENDER ============ */
@@ -747,8 +921,7 @@ function buildBoard(){
     t.style.gridRow = pos.row;
     t.dataset.idx = i;
     let typeLabel = {payday:'월급날', news:'속보', insider:'정보원', bank:'은행', company:''}[tile.type];
-    let top = el('div','tType', typeLabel);
-    t.appendChild(top);
+    t.appendChild(el('div','tType', typeLabel));
     if(tile.type==='company'){
       const c = company(tile.c);
       t.style.setProperty('--tileColor', c.color);
@@ -777,28 +950,38 @@ function buildBoard(){
       '<button class="rollBtn" id="rollBtn">주사위 굴리기</button>'+
       '<button class="endTurnBtn" id="endTurnBtn">턴 종료</button>'+
     '</div>'+
-    '<div class="centerNews" id="centerNews">라운드 '+ (G? (Math.floor(G.turnCount/G.players.length)+1):1) +'</div>';
+    '<div class="centerNews" id="centerNews"></div>';
   board.appendChild(center);
-  document.getElementById('rollBtn').addEventListener('click', rollDice);
-  document.getElementById('endTurnBtn').addEventListener('click', endTurn);
+  document.getElementById('rollBtn').addEventListener('click', uiRoll);
+  document.getElementById('endTurnBtn').addEventListener('click', uiEndTurn);
 }
 
 function renderBoardTokens(){
   document.querySelectorAll('[id^="tok-"]').forEach(e=>e.innerHTML='');
-  G.players.forEach((p,i)=>{
+  G.players.forEach(p=>{
     const wrap = document.getElementById('tok-'+p.pos);
     if(!wrap) return;
     const tok = el('div','token', p.name.slice(0,1));
     tok.style.background = p.color;
     wrap.appendChild(tok);
   });
-  // update company tile prices
   G.tiles.forEach((tile,i)=>{
     if(tile.type==='company'){
       const c = company(tile.c);
       const tileEl = document.querySelector('.tile[data-idx="'+i+'"] .tPrice');
       if(tileEl) tileEl.textContent = c.price.toLocaleString('ko-KR')+'원';
     }
+  });
+}
+function renderBoardTokensAt(movingIdx, pos){
+  document.querySelectorAll('[id^="tok-"]').forEach(e=>e.innerHTML='');
+  G.players.forEach((p,i)=>{
+    const displayPos = (i===movingIdx)? pos : p.pos;
+    const wrap = document.getElementById('tok-'+displayPos);
+    if(!wrap) return;
+    const tok = el('div','token', p.name.slice(0,1));
+    tok.style.background=p.color;
+    wrap.appendChild(tok);
   });
 }
 
@@ -819,11 +1002,9 @@ function drawSparkline(canvas, history, color){
     const y = h-pad - ((v-min)/range)*(h-pad*2);
     return [x,y];
   });
-  // baseline
   ctx.strokeStyle='rgba(255,255,255,0.08)';
   ctx.lineWidth=1;
   ctx.beginPath(); ctx.moveTo(pad,h-pad); ctx.lineTo(w-pad,h-pad); ctx.stroke();
-  // area fill
   ctx.beginPath();
   ctx.moveTo(pts[0][0], h-pad);
   pts.forEach(pt=>ctx.lineTo(pt[0],pt[1]));
@@ -834,11 +1015,9 @@ function drawSparkline(canvas, history, color){
   grad.addColorStop(1, color+'00');
   ctx.fillStyle=grad;
   ctx.fill();
-  // line
   ctx.beginPath();
   pts.forEach((pt,i)=> i===0?ctx.moveTo(pt[0],pt[1]):ctx.lineTo(pt[0],pt[1]));
   ctx.strokeStyle=color; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
-  // endpoint
   const last = pts[pts.length-1];
   ctx.beginPath(); ctx.arc(last[0],last[1],3,0,7); ctx.fillStyle=color; ctx.fill();
 }
@@ -848,6 +1027,7 @@ function renderStockGrid(){
   grid.innerHTML='';
   const p = currentPlayer();
   const currentTile = G.tiles[p.pos];
+  const myTurn = myPlayerIndex===G.currentIndex;
   G.companies.forEach(c=>{
     const card = el('div','stockCard'+((currentTile.type==='company'&&currentTile.c===c.id)?' highlight':''));
     const prev = c.history.length>1? c.history[c.history.length-2]: c.price;
@@ -861,13 +1041,13 @@ function renderStockGrid(){
     card.appendChild(el('div','sc-delta '+dir, (dir==='up'?'▲ ':'▼ ')+pctStr(delta)));
     const canvas = document.createElement('canvas');
     card.appendChild(canvas);
-    const held = p.holdings[c.id]||0;
-    card.appendChild(el('div','sc-hold', '보유 <b>'+held+'주</b> · 평가액 <b>'+fmt(held*c.price)+'</b>'));
+    const held = (myPlayerIndex>=0 && G.players[myPlayerIndex])? (G.players[myPlayerIndex].holdings[c.id]||0) : 0;
+    card.appendChild(el('div','sc-hold', '내 보유 <b>'+held+'주</b> · 평가액 <b>'+fmt(held*c.price)+'</b>'));
     const trade = el('div','sc-trade');
     trade.innerHTML =
       '<input type="number" min="1" value="1" id="qty-'+c.id+'">'+
-      '<button class="miniBtn buy" data-act="buy" data-id="'+c.id+'">매수</button>'+
-      '<button class="miniBtn sell" data-act="sell" data-id="'+c.id+'" '+(held<=0?'disabled':'')+'>매도</button>';
+      '<button class="miniBtn buy" data-act="buy" data-id="'+c.id+'" '+(!myTurn?'disabled':'')+'>매수</button>'+
+      '<button class="miniBtn sell" data-act="sell" data-id="'+c.id+'" '+((!myTurn||held<=0)?'disabled':'')+'>매도</button>';
     card.appendChild(trade);
     grid.appendChild(card);
     requestAnimationFrame(()=>drawSparkline(canvas, c.history, c.color));
@@ -876,7 +1056,7 @@ function renderStockGrid(){
     btn.addEventListener('click', ()=>{
       const id = btn.dataset.id;
       const qty = parseInt(document.getElementById('qty-'+id).value)||1;
-      if(btn.dataset.act==='buy') buyStock(id, qty); else sellStock(id, qty);
+      if(btn.dataset.act==='buy') uiBuy(id, qty); else uiSell(id, qty);
     });
   });
 }
@@ -885,10 +1065,10 @@ function renderPlayerCards(){
   const wrap = document.getElementById('playerCardsWrap');
   wrap.innerHTML='';
   G.players.forEach((p,i)=>{
-    const card = el('div','playerCard'+(i===G.currentIndex?' current':''));
+    const card = el('div','playerCard'+(i===G.currentIndex?' current':'')+(i===myPlayerIndex?' me':''));
     card.innerHTML =
       '<span class="dot" style="background:'+p.color+'"></span>'+
-      '<span class="pname">'+p.name+'</span>'+
+      '<span class="pname">'+p.name+(i===myPlayerIndex?' (나)':'')+'</span>'+
       '<span class="pstats">'+
         '<span>현금 <b>'+fmt(p.cash)+'</b></span>'+
         '<span>대출 <b>'+fmt(p.loan)+'</b></span>'+
@@ -899,7 +1079,8 @@ function renderPlayerCards(){
 }
 
 function renderFinance(){
-  const p = currentPlayer();
+  const myTurn = myPlayerIndex===G.currentIndex;
+  const p = G.players[myPlayerIndex] || currentPlayer();
   const box = document.getElementById('financeBox');
   const room = maxLoanFor(p);
   const nw = netWorth(p);
@@ -913,18 +1094,18 @@ function renderFinance(){
     '<div class="leverageBar"><div class="fill" style="width:'+ratio+'%"></div></div>'+
     '<div class="actions">'+
       '<input type="number" id="loanAmt" placeholder="금액" min="0" value="50000">'+
-      '<button class="actionBtn gold" id="borrowBtn">대출 실행</button>'+
-      '<button class="actionBtn" id="repayBtn">상환</button>'+
+      '<button class="actionBtn gold" id="borrowBtn" '+(!myTurn?'disabled':'')+'>대출 실행</button>'+
+      '<button class="actionBtn" id="repayBtn" '+(!myTurn?'disabled':'')+'>상환</button>'+
     '</div>'+
     '<div style="margin-top:.9rem;padding-top:.8rem;border-top:1px solid var(--border);">'+
-      '<button class="actionBtn gold" id="insiderBtn" '+((!G.insiderAvailableThisTurn||p.insiderUsedThisTurn)?'disabled':'')+' style="width:100%;">'+
+      '<button class="actionBtn gold" id="insiderBtn" '+((!myTurn||!G.insiderAvailableThisTurn||p.insiderUsedThisTurn)?'disabled':'')+' style="width:100%;">'+
       (p.insiderUsedThisTurn? '이번 턴 정보 취재 완료' : (G.insiderAvailableThisTurn? '특종 정보 열람 (비용 '+fmt(Math.max(3000, Math.round(p.cash*0.08/1000)*1000))+')' : '정보원 타일에서만 이용 가능'))+
       '</button>'+
     '</div>';
-  document.getElementById('borrowBtn').addEventListener('click', ()=>borrow(parseInt(document.getElementById('loanAmt').value)||0));
-  document.getElementById('repayBtn').addEventListener('click', ()=>repay(parseInt(document.getElementById('loanAmt').value)||0));
+  document.getElementById('borrowBtn').addEventListener('click', ()=>uiBorrow(parseInt(document.getElementById('loanAmt').value)||0));
+  document.getElementById('repayBtn').addEventListener('click', ()=>uiRepay(parseInt(document.getElementById('loanAmt').value)||0));
   const ib = document.getElementById('insiderBtn');
-  if(ib) ib.addEventListener('click', useInsider);
+  if(ib) ib.addEventListener('click', uiInsider);
 }
 
 function renderStandings(){
@@ -932,10 +1113,10 @@ function renderStandings(){
   const rows = G.players.map((p,i)=>({p,i,nw:netWorth(p)})).sort((a,b)=>b.nw-a.nw);
   table.innerHTML =
     '<tr><th>순위</th><th>투자자</th><th>현금</th><th>대출</th><th>순자산</th><th>Lap</th></tr>'+
-    rows.map((r,rank)=>
+    rows.map((r)=>
       '<tr class="'+(r.i===G.currentIndex?'current':'')+'">'+
-      '<td>'+(rank+1)+'</td>'+
-      '<td class="name"><span class="dot" style="width:9px;height:9px;border-radius:50%;background:'+r.p.color+';display:inline-block;"></span>'+r.p.name+'</td>'+
+      '<td>'+(rows.indexOf(r)+1)+'</td>'+
+      '<td class="name"><span style="width:9px;height:9px;border-radius:50%;background:'+r.p.color+';display:inline-block;"></span>'+r.p.name+(r.i===myPlayerIndex?' (나)':'')+'</td>'+
       '<td>'+fmt(r.p.cash)+'</td>'+
       '<td>'+fmt(r.p.loan)+'</td>'+
       '<td>'+fmt(r.nw)+'</td>'+
@@ -965,17 +1146,26 @@ function renderTicker(){
 
 function renderCenter(){
   const p = currentPlayer();
-  document.getElementById('turnName').textContent = p.name+'님의 차례';
+  const myTurn = myPlayerIndex===G.currentIndex;
+  document.getElementById('turnName').textContent = p.name+'님의 차례'+(myTurn?' — 당신 차례!':'');
   document.getElementById('turnName').style.color = p.color;
-  document.getElementById('rollBtn').disabled = G.hasRolled||G.animating||G.ended;
-  document.getElementById('endTurnBtn').disabled = !G.hasRolled||G.animating||G.ended;
+  document.getElementById('rollBtn').disabled = !myTurn||G.hasRolled||G.animating||G.ended;
+  document.getElementById('endTurnBtn').disabled = !myTurn||!G.hasRolled||G.animating||G.ended;
   document.getElementById('centerNews').textContent =
-    '턴 '+(G.turnCount+1)+' / '+G.maxTurns+' · Lap '+p.lap;
+    '턴 '+Math.min(G.turnCount+1,G.maxTurns)+' / '+G.maxTurns+' · Lap '+p.lap;
 }
 
 function renderHeader(){
   document.getElementById('headerStatus').textContent =
     G.players.length+'인 플레이 · 턴 '+Math.min(G.turnCount+1,G.maxTurns)+'/'+G.maxTurns;
+}
+
+function renderMyIdentity(){
+  const box = document.getElementById('myIdentity');
+  const me = G.players[myPlayerIndex];
+  if(!me){ box.textContent=''; return; }
+  box.innerHTML = '나: <b style="color:'+me.color+'">'+me.name+'</b>'+
+    (myPlayerIndex===G.currentIndex? ' — <b style="color:var(--accent-strong)">지금 당신 차례입니다</b>' : ' — 다른 사람 차례를 기다리는 중');
 }
 
 function renderAll(){
@@ -989,6 +1179,7 @@ function renderAll(){
   renderTicker();
   renderCenter();
   renderHeader();
+  renderMyIdentity();
 }
 
 /* ============ MODALS ============ */
@@ -1011,7 +1202,7 @@ function showInsiderModal(r){
   } else {
     const dir = r.pct>=0?'up':'down';
     openModal(
-      '<div class="kicker">특종 · Insider Memo</div>'+
+      '<div class="kicker">특종 · Insider Memo (나만 볼 수 있음)</div>'+
       '<h3>'+r.headline+'</h3>'+
       '<p>대상: '+r.target+' · 취재 비용 '+fmt(r.cost)+'</p>'+
       '<div class="impact '+dir+'">예상 변동 '+(dir==='up'?'▲ ':'▼ ')+pctStr(r.pct)+'</div>'+
@@ -1020,6 +1211,8 @@ function showInsiderModal(r){
   }
 }
 function openModal(innerHtml){
+  const existing = document.getElementById('modalOverlay');
+  if(existing) existing.remove();
   const overlay = el('div','overlay');
   overlay.id='modalOverlay';
   const modal = el('div','modal', innerHtml+'<button class="closeBtn" id="modalClose">확인</button>');
@@ -1029,15 +1222,13 @@ function openModal(innerHtml){
 }
 
 /* ============ END GAME ============ */
-function endGame(){
-  G.ended=true;
+function showEndGameModal(){
   const ranked = G.players.map(p=>({p,nw:netWorth(p)})).sort((a,b)=>b.nw-a.nw);
   let bodyRows = ranked.map((r,i)=>
     '<div class="rankRow"><span class="rank">'+(i+1)+'</span>'+
-    '<span class="dot" style="width:11px;height:11px;border-radius:50%;background:'+r.p.color+';display:inline-block;margin-right:.3rem;"></span>'+
+    '<span style="width:11px;height:11px;border-radius:50%;background:'+r.p.color+';display:inline-block;margin-right:.3rem;"></span>'+
     '<span class="who">'+r.p.name+'</span><span class="val">'+fmt(r.nw)+'</span></div>'
   ).join('');
-
   const canvasId = 'endChart';
   openModal(
     '<div class="kicker">폐장 · Closing Bell</div>'+
@@ -1049,10 +1240,7 @@ function endGame(){
   const legend = document.getElementById('chartLegend');
   legend.innerHTML = G.players.map(p=>'<span><i style="background:'+p.color+'"></i>'+p.name+'</span>').join('');
   requestAnimationFrame(()=>drawEndChart(document.getElementById(canvasId)));
-  document.getElementById('rollBtn').disabled=true;
-  document.getElementById('endTurnBtn').disabled=true;
 }
-
 function drawEndChart(canvas){
   const dpr = window.devicePixelRatio||1;
   const w = canvas.clientWidth||360, h = canvas.clientHeight||140;
@@ -1064,7 +1252,6 @@ function drawEndChart(canvas){
   const min = Math.min(0,...allVals), max = Math.max(...allVals);
   const range = (max-min)||1;
   const maxTurn = Math.max(...G.players.map(p=>p.netWorthHistory[p.netWorthHistory.length-1].turn),1);
-  // gridlines
   ctx.strokeStyle='rgba(255,255,255,0.07)';
   ctx.lineWidth=1;
   for(let i=0;i<=3;i++){
@@ -1084,49 +1271,77 @@ function drawEndChart(canvas){
   });
 }
 
-/* ============ SETUP UI ============ */
-let setupState = {count:2, names:['투자자 1','투자자 2','투자자 3','투자자 4'], length:18};
+/* ============ LOBBY UI ============ */
+function setNetStatus(text){ document.getElementById('netStatus').textContent = text; }
 
-function renderSetup(){
-  const countWrap = document.getElementById('playerCountChoice');
-  countWrap.innerHTML='';
-  [2,3,4].forEach(n=>{
-    const chip = el('div','chip'+(setupState.count===n?' active':''), n+'명');
-    chip.addEventListener('click', ()=>{ setupState.count=n; renderSetup(); });
-    countWrap.appendChild(chip);
-  });
-  const nameRows = document.getElementById('nameRows');
-  nameRows.innerHTML='';
-  for(let i=0;i<setupState.count;i++){
-    const row = el('div','nameRow');
-    const swatch = el('span','swatch'); swatch.style.background=PLAYER_COLORS[i];
-    row.appendChild(swatch);
-    const input = document.createElement('input');
-    input.value = setupState.names[i];
-    input.maxLength=10;
-    input.addEventListener('input', e=> setupState.names[i]=e.target.value||('투자자 '+(i+1)));
-    row.appendChild(input);
-    nameRows.appendChild(row);
-  }
+function renderLengthChoice(){
   const lenWrap = document.getElementById('lengthChoice');
   lenWrap.innerHTML='';
   [[12,'짧게'],[18,'보통'],[24,'길게']].forEach(([v,label])=>{
-    const chip = el('div','chip'+(setupState.length===v?' active':''), label+' · 1인당 '+v+'턴');
-    chip.addEventListener('click', ()=>{ setupState.length=v; renderSetup(); });
+    const chip = el('div','chip'+(pendingSettings.turnsPerPlayer===v?' active':''), label+' · 1인당 '+v+'턴');
+    chip.addEventListener('click', ()=>{ pendingSettings.turnsPerPlayer=v; renderLengthChoice(); });
     lenWrap.appendChild(chip);
   });
-  document.getElementById('lengthHelp').textContent =
-    '총 '+(setupState.length*setupState.count)+'턴 진행 후 순자산(현금+주식평가액-대출)이 가장 높은 투자자가 승리합니다.';
 }
 
-document.getElementById('startBtn').addEventListener('click', ()=>{
-  const names = setupState.names.slice(0,setupState.count);
-  newGame(names, setupState.length);
+function renderLobby(){
+  const list = document.getElementById('lobbyList');
+  list.innerHTML = lobby.map((l,i)=>
+    '<div class="lobbySlot"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:'+PLAYER_COLORS[i]+';display:inline-block;"></span>'+
+    '<span>'+l.name+'</span>'+
+    '<span class="tag">'+(i===0?'호스트':'참가자')+(l.peerId===NET.myPeerId?' · 나':'')+'</span></div>'
+  ).join('') || '<div class="helpText" style="margin-top:0;">참가자를 기다리는 중…</div>';
+  if(NET.role==='host'){
+    const btn = document.getElementById('startGameBtn');
+    btn.disabled = lobby.length<2;
+    btn.textContent = '게임 시작 ('+lobby.length+'/4명)';
+  }
+}
+
+function enterGameScreen(){
   document.getElementById('setupScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
   buildBoard();
-  startTurn();
-});
+  renderAll();
+}
+
+function boot(){
+  renderLengthChoice();
+  const room = new URLSearchParams(location.search).get('room');
+  if(typeof Peer === 'undefined'){
+    setNetStatus('네트워크 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요.');
+    return;
+  }
+  if(room){
+    document.getElementById('createCard').classList.add('hidden');
+    document.getElementById('joinCard').classList.remove('hidden');
+    document.getElementById('waitingText').classList.remove('hidden');
+    document.getElementById('joinBtn').addEventListener('click', ()=>{
+      const name = document.getElementById('joinNameInput').value.trim() || '투자자';
+      document.getElementById('joinCard').classList.add('hidden');
+      document.getElementById('lobbyCard').classList.remove('hidden');
+      joinRoom(room, name);
+    });
+    setNetStatus('참가할 준비가 되었습니다.');
+  } else {
+    document.getElementById('createBtn').addEventListener('click', ()=>{
+      const name = document.getElementById('createNameInput').value.trim() || '호스트';
+      document.getElementById('createCard').classList.add('hidden');
+      document.getElementById('lobbyCard').classList.remove('hidden');
+      createRoom(name);
+    });
+    setNetStatus('방을 만들 준비가 되었습니다.');
+  }
+  document.getElementById('copyLinkBtn').addEventListener('click', ()=>{
+    const input = document.getElementById('inviteLink');
+    input.select();
+    navigator.clipboard && navigator.clipboard.writeText(input.value).catch(()=>{});
+    const btn = document.getElementById('copyLinkBtn');
+    const old = btn.textContent; btn.textContent='복사됨!';
+    setTimeout(()=>btn.textContent=old, 1500);
+  });
+  document.getElementById('startGameBtn').addEventListener('click', hostStartGame);
+}
 
 document.querySelectorAll('.tabBtn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -1137,6 +1352,6 @@ document.querySelectorAll('.tabBtn').forEach(btn=>{
   });
 });
 
-renderSetup();
+boot();
 })();
 </script>
