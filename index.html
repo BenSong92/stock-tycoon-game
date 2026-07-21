@@ -161,10 +161,23 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 .tile.payday{background:linear-gradient(160deg,var(--panel),rgba(47,191,79,0.13));border:1px solid var(--good);}
 .tile .tokens{position:absolute;right:3px;bottom:3px;display:flex;gap:2px;flex-wrap:wrap-reverse;max-width:70%;justify-content:flex-end;}
 .token{
-  width:clamp(11px,3.4vw,16px);height:clamp(11px,3.4vw,16px);border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-size:clamp(.4rem,1.5vw,.55rem);font-weight:700;color:#000;border:1.5px solid rgba(0,0,0,0.5);
-  box-shadow:0 1px 3px rgba(0,0,0,.5);flex:none;
+  width:clamp(15px,4.2vw,22px);height:clamp(15px,4.2vw,22px);border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:clamp(.62rem,2.3vw,.9rem);line-height:1;font-weight:700;border:1.5px solid rgba(0,0,0,0.5);
+  box-shadow:0 1px 3px rgba(0,0,0,.5);flex:none;transform-origin:50% 100%;
 }
+@keyframes tokenHop{
+  0%{transform:translateY(0) scale(1,1);}
+  35%{transform:translateY(-70%) scale(1.18,0.82);}
+  65%{transform:translateY(-12%) scale(0.88,1.14);}
+  100%{transform:translateY(0) scale(1,1);}
+}
+.token.hop{animation:tokenHop .28s ease-out;}
+@keyframes tileLanded{
+  0%{box-shadow:0 0 0 0 rgba(201,163,92,0.7);}
+  100%{box-shadow:0 0 0 12px rgba(201,163,92,0);}
+}
+.tile.landed{animation:tileLanded .55s ease-out;}
+@media (prefers-reduced-motion:reduce){ .token.hop, .tile.landed{animation:none;} }
 .centerPanel{
   grid-column:2/6;grid-row:2/6;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;padding:1rem;text-align:center;
@@ -498,6 +511,7 @@ const NEWS_POOL = [
 ];
 
 const PLAYER_COLORS = ['#3987e5','#d95926','#199e70','#c98500'];
+const PLAYER_TOKENS = ['🐰','🦊','🐱','🐶'];
 
 // tile layout, index 0..19
 const TILE_DEFS = [
@@ -529,8 +543,8 @@ function gridPos(i){
   return {col:1, row:1+(i-15)};
 }
 
-const SALARY = 40000;
-const START_CASH = 300000;
+const SALARY = 200000;
+const START_CASH = 1000000;
 const INTEREST_RATE = 0.05;
 const TRADE_FEE = 0.005;
 const LEVERAGE_MULT = 2;
@@ -558,7 +572,7 @@ function newGame(names, turnsPerPlayer){
   const companies = COMPANIES.map(c=>({...c, price:c.base, history:[c.base]}));
   const players = names.map((name,i)=>({
     name, color:PLAYER_COLORS[i], cash:START_CASH, loan:0, pos:0, lap:0,
-    holdings:{}, netWorthHistory:[{turn:0, value:START_CASH}],
+    holdings:{}, avgCost:{}, netWorthHistory:[{turn:0, value:START_CASH}],
     insiderUsedThisTurn:false, peerId:null,
   }));
   G = {
@@ -779,9 +793,13 @@ function execBuy(playerIndex, companyId, qty){
   if(!c) return;
   const cost = c.price*qty*(1+TRADE_FEE);
   if(cost>p.cash){ logMsg('현금이 부족합니다.', 'news'); return; }
+  const prevQty = p.holdings[companyId]||0;
+  const prevAvg = p.avgCost[companyId]||0;
   p.cash -= cost;
-  p.holdings[companyId] = (p.holdings[companyId]||0)+qty;
-  logMsg(p.name+'님이 '+c.name+' '+qty+'주 매수 ('+fmt(cost)+')', '');
+  const newQty = prevQty+qty;
+  p.avgCost[companyId] = Math.round((prevAvg*prevQty + c.price*qty)/newQty);
+  p.holdings[companyId] = newQty;
+  logMsg(p.name+'님이 '+c.name+' '+qty+'주 매수 ('+fmt(cost)+', 평단 '+fmt(p.avgCost[companyId])+')', '');
   applyTradeImpact(c, qty, 1);
 }
 function execSell(playerIndex, companyId, qty){
@@ -790,16 +808,19 @@ function execSell(playerIndex, companyId, qty){
   const have = p.holdings[companyId]||0;
   if(qty<=0||qty>have){ logMsg('보유 수량보다 많이 팔 수 없습니다.', 'news'); return; }
   const c = company(companyId);
+  const avg = p.avgCost[companyId]||c.price;
   const proceeds = c.price*qty*(1-TRADE_FEE);
+  const plPct = avg>0? ((c.price-avg)/avg)*100 : 0;
   p.cash += proceeds;
   p.holdings[companyId] -= qty;
-  logMsg(p.name+'님이 '+c.name+' '+qty+'주 매도 ('+fmt(proceeds)+')', '');
+  if(p.holdings[companyId]<=0){ p.holdings[companyId]=0; p.avgCost[companyId]=0; }
+  logMsg(p.name+'님이 '+c.name+' '+qty+'주 매도 ('+fmt(proceeds)+', 손익 '+pctStr(plPct)+')', plPct>=0?'good':'news');
   applyTradeImpact(c, qty, -1);
 }
 function applyTradeImpact(c, qty, direction){
-  // buying pushes the price up, selling pushes it down — bigger orders move it more,
-  // capped per trade so one huge order can't single-handedly crash/rocket a stock
-  const impactPct = Math.min(8, qty*0.4) * direction;
+  // buying pushes the price up, selling pushes it down, scaling directly with order size
+  // (qty*0.3%/share), capped per trade so one huge order can't single-handedly crash/rocket a stock
+  const impactPct = Math.min(10, qty*0.3) * direction;
   c.price = Math.max(500, Math.round(c.price*(1+impactPct/100)));
   pushHistory(c);
 }
@@ -1038,6 +1059,11 @@ function animateRoll(meta){
         clearInterval(timer);
         G.animating = false;
         renderAll();
+        const landedTile = document.querySelector('.tile[data-idx="'+cur+'"]');
+        if(landedTile){
+          landedTile.classList.add('landed');
+          setTimeout(()=>landedTile.classList.remove('landed'),600);
+        }
         if(meta.tileInfo){
           if(meta.tileInfo.kind==='news'){ showNewsModal(meta.tileInfo.result); }
           else if(meta.tileInfo.forcedNews){ showNewsModal(meta.tileInfo.forcedNews); }
@@ -1104,10 +1130,10 @@ function buildBoard(){
 
 function renderBoardTokens(){
   document.querySelectorAll('[id^="tok-"]').forEach(e=>e.innerHTML='');
-  G.players.forEach(p=>{
+  G.players.forEach((p,i)=>{
     const wrap = document.getElementById('tok-'+p.pos);
     if(!wrap) return;
-    const tok = el('div','token', p.name.slice(0,1));
+    const tok = el('div','token', PLAYER_TOKENS[i]||p.name.slice(0,1));
     tok.style.background = p.color;
     wrap.appendChild(tok);
   });
@@ -1125,7 +1151,7 @@ function renderBoardTokensAt(movingIdx, pos){
     const displayPos = (i===movingIdx)? pos : p.pos;
     const wrap = document.getElementById('tok-'+displayPos);
     if(!wrap) return;
-    const tok = el('div','token', p.name.slice(0,1));
+    const tok = el('div','token'+(i===movingIdx?' hop':''), PLAYER_TOKENS[i]||p.name.slice(0,1));
     tok.style.background=p.color;
     wrap.appendChild(tok);
   });
@@ -1187,10 +1213,18 @@ function renderStockGrid(){
     card.appendChild(el('div','sc-delta '+dir, (dir==='up'?'▲ ':'▼ ')+pctStr(delta)));
     const canvas = document.createElement('canvas');
     card.appendChild(canvas);
-    const myCash = (myPlayerIndex>=0 && G.players[myPlayerIndex])? G.players[myPlayerIndex].cash : 0;
-    const held = (myPlayerIndex>=0 && G.players[myPlayerIndex])? (G.players[myPlayerIndex].holdings[c.id]||0) : 0;
+    const me = (myPlayerIndex>=0)? G.players[myPlayerIndex] : null;
+    const myCash = me? me.cash : 0;
+    const held = me? (me.holdings[c.id]||0) : 0;
+    const myAvg = me? (me.avgCost[c.id]||0) : 0;
     const maxAffordable = Math.floor(myCash/(c.price*(1+TRADE_FEE)));
-    card.appendChild(el('div','sc-hold', '내 보유 <b>'+held+'주</b> · 평가액 <b>'+fmt(held*c.price)+'</b>'));
+    let holdLine = '내 보유 <b>'+held+'주</b> · 평가액 <b>'+fmt(held*c.price)+'</b>';
+    if(held>0 && myAvg>0){
+      const plPct = ((c.price-myAvg)/myAvg)*100;
+      const plDir = plPct>=0?'up':'down';
+      holdLine += ' · 평단가 <b>'+fmt(myAvg)+'</b> · <span class="sc-delta '+plDir+'">'+(plDir==='up'?'▲ ':'▼ ')+pctStr(plPct)+'</span>';
+    }
+    card.appendChild(el('div','sc-hold', holdLine));
     const trade = el('div','sc-trade');
     trade.innerHTML =
       '<input type="number" min="1" value="1" id="qty-'+c.id+'">'+
@@ -1226,7 +1260,7 @@ function renderPlayerCards(){
     const card = el('div','playerCard'+(i===G.currentIndex?' current':'')+(i===myPlayerIndex?' me':''));
     card.innerHTML =
       '<span class="dot" style="background:'+p.color+'"></span>'+
-      '<span class="pname">'+p.name+(i===myPlayerIndex?' (나)':'')+'</span>'+
+      '<span class="pname">'+(PLAYER_TOKENS[i]||'')+' '+p.name+(i===myPlayerIndex?' (나)':'')+'</span>'+
       '<span class="pstats">'+
         '<span>현금 <b>'+fmt(p.cash)+'</b></span>'+
         '<span>대출 <b>'+fmt(p.loan)+'</b></span>'+
@@ -1337,7 +1371,7 @@ function renderMyIdentity(){
   const box = document.getElementById('myIdentity');
   const me = G.players[myPlayerIndex];
   if(!me){ box.textContent=''; return; }
-  box.innerHTML = '나: <b style="color:'+me.color+'">'+me.name+'</b>'+
+  box.innerHTML = '나: <b style="color:'+me.color+'">'+(PLAYER_TOKENS[myPlayerIndex]||'')+' '+me.name+'</b>'+
     (myPlayerIndex===G.currentIndex? ' — <b style="color:var(--accent-strong)">지금 당신 차례입니다</b>' : ' — 다른 사람 차례를 기다리는 중');
 }
 
@@ -1479,7 +1513,7 @@ function renderLobby(){
   const list = document.getElementById('lobbyList');
   list.innerHTML = lobby.map((l,i)=>
     '<div class="lobbySlot"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:'+PLAYER_COLORS[i]+';display:inline-block;"></span>'+
-    '<span>'+l.name+'</span>'+
+    '<span>'+(PLAYER_TOKENS[i]||'')+' '+l.name+'</span>'+
     '<span class="tag">'+(i===0?'호스트':'참가자')+(l.peerId===NET.myPeerId?' · 나':'')+'</span></div>'
   ).join('') || '<div class="helpText" style="margin-top:0;">참가자를 기다리는 중…</div>';
   if(NET.role==='host'){
