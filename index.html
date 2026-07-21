@@ -179,6 +179,20 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 }
 .rollBtn:hover:not(:disabled){background:var(--accent);color:#1a1200;}
 .rollBtn:disabled{opacity:.35;cursor:not-allowed;}
+.die.rolling{animation:diceShake .35s ease-in-out infinite;}
+@keyframes diceShake{
+  0%{transform:rotate(0deg) scale(1);}
+  25%{transform:rotate(-10deg) scale(1.06);}
+  50%{transform:rotate(7deg) scale(0.96);}
+  75%{transform:rotate(-5deg) scale(1.05);}
+  100%{transform:rotate(0deg) scale(1);}
+}
+.die.reveal{animation:dicePop .35s ease;box-shadow:0 0 0 2px var(--accent);}
+@keyframes dicePop{0%{transform:scale(0.55);} 60%{transform:scale(1.18);} 100%{transform:scale(1);}}
+@media (prefers-reduced-motion:reduce){ .die.rolling,.die.reveal{animation:none;} }
+.turnTimerWrap{width:100%;max-width:220px;height:6px;background:var(--panel-3);border-radius:3px;overflow:hidden;margin-top:.3rem;}
+.turnTimerBar{height:100%;width:100%;background:var(--good);transition:width 1s linear, background .3s;}
+.turnTimerText{font-family:var(--mono);font-size:.68rem;color:var(--ink-3);margin-top:.15rem;}
 .endTurnBtn{
   padding:.55rem 1.2rem;border-radius:8px;border:1px solid var(--border-strong);background:var(--panel-3);
   color:var(--ink);cursor:pointer;font-size:.85rem;
@@ -384,6 +398,10 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
 
       <div class="tabPane" id="pane-rank">
         <table class="standings" id="standingsTable"></table>
+        <div class="helpText" style="margin-top:1.1rem;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;">전체 보유 종목</div>
+        <div style="overflow-x:auto;margin-top:.4rem;">
+          <table class="standings" id="holdingsTable"></table>
+        </div>
       </div>
 
       <div class="tabPane" id="pane-log">
@@ -437,6 +455,16 @@ const NEWS_POOL = [
   {c:null, h:'[시장 전체] 글로벌 훈풍, 투자 심리 회복', pct:7},
   {c:null, h:'[시장 전체] 환율 급등, 수출주 동반 강세', pct:5},
   {c:null, h:'[시장 전체] 인플레이션 공포, 증시 전반 하락', pct:-8},
+  {c:null, h:'[국제정세] 미-중 반도체 수출 규제 전면 강화', pct:-9},
+  {c:null, h:'[국제정세] 미중 무역 협상 극적 타결', pct:8},
+  {c:'hyundai', h:'[국제정세] 중동 지정학적 긴장 고조, 국제 유가 급등', pct:-9},
+  {c:null, h:'[국제정세] 미 연준(Fed), 기준금리 동결 발표', pct:6},
+  {c:null, h:'[국제정세] 미 연준, 예상 밖 전격 금리 인상', pct:-7},
+  {c:'amazon', h:'[국제정세] 글로벌 해상 물류 대란 재점화', pct:-10},
+  {c:null, h:'[국제정세] 달러 초강세, 신흥국 자금 대량 이탈', pct:-6},
+  {c:null, h:'[국제정세] 지정학적 리스크 완화, 글로벌 증시 안도랠리', pct:7},
+  {c:'lges', h:'[국제정세] 미국, 친환경차 보조금 대폭 확대 발표', pct:12},
+  {c:'nvidia', h:'[국제정세] 첨단 AI 반도체 대중 수출 일부 허용 합의', pct:15},
 ];
 
 const PLAYER_COLORS = ['#3987e5','#d95926','#199e70','#c98500'];
@@ -476,6 +504,9 @@ const START_CASH = 300000;
 const INTEREST_RATE = 0.05;
 const TRADE_FEE = 0.005;
 const LEVERAGE_MULT = 2;
+const TURN_SECONDS = 90;
+let hostTimerHandle = null;
+let timerTickHandle = null;
 
 /* ============ STATE ============ */
 let G = null;
@@ -513,6 +544,10 @@ function newGame(names, turnsPerPlayer){
     insiderAvailableThisTurn:false,
     log:[],
     ended:false,
+    turnsSinceNews:0,
+    nextForcedNewsIn: 5+Math.floor(Math.random()*3),
+    lastInterestTurn:-1,
+    turnDeadline:0,
   };
   logMsg('시장이 개장했습니다. 행운을 빕니다.', 'gold');
 }
@@ -604,19 +639,51 @@ function beginTurn(){
   p.insiderUsedThisTurn=false;
   G.hasRolled=false;
   G.insiderAvailableThisTurn=false;
+  G.turnsSinceNews++;
   applyMarketDrift();
   checkMarginCalls();
+  if(G.turnCount>0 && G.turnCount%5===0) chargeInterestAll();
+  G.turnDeadline = Date.now()+TURN_SECONDS*1000;
+  scheduleAutoTimeout();
+}
+
+function chargeInterestAll(){
+  if(G.lastInterestTurn===G.turnCount) return;
+  G.lastInterestTurn = G.turnCount;
+  G.players.forEach(pl=>{
+    if(pl.loan>0){
+      const interest = Math.round(pl.loan*INTEREST_RATE);
+      pl.loan += interest;
+      logMsg(pl.name+'님의 대출 이자 '+fmt(interest)+'가 부과되었습니다 (5턴마다 정산, 연 5%).', 'news');
+    }
+  });
+}
+
+function scheduleAutoTimeout(){
+  if(NET.role!=='host') return;
+  if(hostTimerHandle) clearTimeout(hostTimerHandle);
+  hostTimerHandle = setTimeout(hostForceTimeout, TURN_SECONDS*1000+150);
+}
+function hostForceTimeout(){
+  if(!G || G.ended) return;
+  if(!G.hasRolled){
+    const rollMeta = execRoll();
+    hostBroadcastAndRender(rollMeta);
+    const delay = rollMeta.steps*130+500;
+    hostTimerHandle = setTimeout(()=>{
+      const endMeta = execEndTurn();
+      hostBroadcastAndRender(endMeta);
+    }, delay);
+  } else {
+    const endMeta = execEndTurn();
+    hostBroadcastAndRender(endMeta);
+  }
 }
 
 function passStart(p){
   p.lap++;
   p.cash += SALARY;
   logMsg(p.name+'님, 월급날! +'+fmt(SALARY), 'good');
-  if(p.loan>0){
-    const interest = Math.round(p.loan*INTEREST_RATE);
-    p.loan += interest;
-    logMsg(p.name+'님의 대출 이자 '+fmt(interest)+'가 누적되었습니다.', 'news');
-  }
 }
 
 function resolveTile(p){
@@ -659,7 +726,18 @@ function execRoll(){
   const from=p.pos;
   G.hasRolled=true;
   for(let s=0;s<steps;s++){ p.pos=(p.pos+1)%20; if(p.pos===0) passStart(p); }
-  const tileInfo = resolveTile(p);
+  let tileInfo = resolveTile(p);
+  if(tileInfo && tileInfo.kind==='news'){
+    G.turnsSinceNews = 0;
+    G.nextForcedNewsIn = 5+Math.floor(Math.random()*3);
+  } else if(G.turnsSinceNews >= G.nextForcedNewsIn){
+    const card = drawCard();
+    const result = applyCard(card);
+    logMsg('[속보] '+result.headline+' → '+result.detail, 'news');
+    G.turnsSinceNews = 0;
+    G.nextForcedNewsIn = 5+Math.floor(Math.random()*3);
+    tileInfo = tileInfo? Object.assign({}, tileInfo, {forcedNews:result}) : {kind:'forced-news-only', forcedNews:result};
+  }
   return {kind:'roll', playerIndex, from, steps, dice:[d1,d2], tileInfo};
 }
 
@@ -738,6 +816,7 @@ function execEndTurn(){
   G.turnCount++;
   if(G.turnCount>=G.maxTurns){
     G.ended = true;
+    if(hostTimerHandle) clearTimeout(hostTimerHandle);
     return {kind:'gameEnd'};
   }
   G.currentIndex = (G.currentIndex+1)%G.players.length;
@@ -885,22 +964,44 @@ function playMeta(meta){
 function animateRoll(meta){
   G.animating = true;
   const die1 = document.getElementById('die1'), die2 = document.getElementById('die2');
-  if(die1) die1.textContent = meta.dice[0];
-  if(die2) die2.textContent = meta.dice[1];
   const rollBtn = document.getElementById('rollBtn'), endBtn = document.getElementById('endTurnBtn');
   if(rollBtn) rollBtn.disabled = true;
   if(endBtn) endBtn.disabled = true;
-  let cur = meta.from, count=0;
-  const timer = setInterval(()=>{
-    cur = (cur+1)%20; count++;
-    renderBoardTokensAt(meta.playerIndex, cur);
-    if(count>=meta.steps){
-      clearInterval(timer);
-      G.animating = false;
-      renderAll();
-      if(meta.tileInfo && meta.tileInfo.kind==='news'){ showNewsModal(meta.tileInfo.result); }
+  if(die1) die1.classList.add('rolling');
+  if(die2) die2.classList.add('rolling');
+  let shuffleCount=0;
+  const shuffleTimer = setInterval(()=>{
+    if(die1) die1.textContent = 1+Math.floor(Math.random()*6);
+    if(die2) die2.textContent = 1+Math.floor(Math.random()*6);
+    shuffleCount++;
+    if(shuffleCount>=6){
+      clearInterval(shuffleTimer);
+      if(die1){ die1.classList.remove('rolling'); die1.textContent=meta.dice[0]; die1.classList.add('reveal'); }
+      if(die2){ die2.classList.remove('rolling'); die2.textContent=meta.dice[1]; die2.classList.add('reveal'); }
+      setTimeout(()=>{
+        if(die1) die1.classList.remove('reveal');
+        if(die2) die2.classList.remove('reveal');
+        hopTokenThenReveal();
+      },350);
     }
-  },130);
+  },80);
+
+  function hopTokenThenReveal(){
+    let cur = meta.from, count=0;
+    const timer = setInterval(()=>{
+      cur = (cur+1)%20; count++;
+      renderBoardTokensAt(meta.playerIndex, cur);
+      if(count>=meta.steps){
+        clearInterval(timer);
+        G.animating = false;
+        renderAll();
+        if(meta.tileInfo){
+          if(meta.tileInfo.kind==='news'){ showNewsModal(meta.tileInfo.result); }
+          else if(meta.tileInfo.forcedNews){ showNewsModal(meta.tileInfo.forcedNews); }
+        }
+      }
+    },130);
+  }
 }
 
 /* ============ RENDER ============ */
@@ -950,6 +1051,8 @@ function buildBoard(){
       '<button class="rollBtn" id="rollBtn">주사위 굴리기</button>'+
       '<button class="endTurnBtn" id="endTurnBtn">턴 종료</button>'+
     '</div>'+
+    '<div class="turnTimerWrap"><div class="turnTimerBar" id="turnTimerBar"></div></div>'+
+    '<div class="turnTimerText" id="turnTimerText"></div>'+
     '<div class="centerNews" id="centerNews"></div>';
   board.appendChild(center);
   document.getElementById('rollBtn').addEventListener('click', uiRoll);
@@ -1091,6 +1194,7 @@ function renderFinance(){
     '<div class="row"><span>포트폴리오 평가액</span><b>'+fmt(portfolioValue(p))+'</b></div>'+
     '<div class="row"><span>순자산</span><b>'+fmt(nw)+'</b></div>'+
     '<div class="row"><span>추가 대출 가능액 (레버리지 '+LEVERAGE_MULT+'배)</span><b>'+fmt(room)+'</b></div>'+
+    '<div class="row"><span>대출 이자율</span><b>5% · 5턴마다 부과 (다음 정산: 턴 '+(Math.ceil((G.turnCount+1)/5)*5)+')</b></div>'+
     '<div class="leverageBar"><div class="fill" style="width:'+ratio+'%"></div></div>'+
     '<div class="actions">'+
       '<input type="number" id="loanAmt" placeholder="금액" min="0" value="50000">'+
@@ -1123,6 +1227,20 @@ function renderStandings(){
       '<td>'+r.p.lap+'</td>'+
       '</tr>'
     ).join('');
+}
+
+function renderHoldingsTable(){
+  const table = document.getElementById('holdingsTable');
+  if(!table) return;
+  const header = '<tr><th>종목</th>'+G.players.map(p=>'<th style="color:'+p.color+'">'+p.name+(p===G.players[myPlayerIndex]?' (나)':'')+'</th>').join('')+'</tr>';
+  const rows = G.companies.map(c=>{
+    const cells = G.players.map(p=>{
+      const q = p.holdings[c.id]||0;
+      return '<td>'+(q>0? q+'주' : '<span style="color:var(--ink-3)">—</span>')+'</td>';
+    }).join('');
+    return '<tr><td class="name"><span style="width:8px;height:8px;border-radius:50%;background:'+c.color+';display:inline-block;"></span>'+c.name+'</td>'+cells+'</tr>';
+  }).join('');
+  table.innerHTML = header+rows;
 }
 
 function renderLog(){
@@ -1175,11 +1293,29 @@ function renderAll(){
   renderStockGrid();
   renderFinance();
   renderStandings();
+  renderHoldingsTable();
   renderLog();
   renderTicker();
   renderCenter();
   renderHeader();
   renderMyIdentity();
+  updateTimerDisplay();
+}
+
+function startTimerTick(){
+  if(timerTickHandle) clearInterval(timerTickHandle);
+  timerTickHandle = setInterval(updateTimerDisplay, 500);
+}
+function updateTimerDisplay(){
+  if(!G || G.ended || !G.turnDeadline) return;
+  const bar = document.getElementById('turnTimerBar');
+  const txt = document.getElementById('turnTimerText');
+  if(!bar||!txt) return;
+  const remain = Math.max(0, Math.ceil((G.turnDeadline-Date.now())/1000));
+  txt.textContent = '남은 시간 '+remain+'초';
+  const pct = clamp((remain/TURN_SECONDS)*100,0,100);
+  bar.style.width = pct+'%';
+  bar.style.background = remain<=15? 'var(--critical)' : (remain<=30? 'var(--warning)':'var(--good)');
 }
 
 /* ============ MODALS ============ */
@@ -1303,6 +1439,7 @@ function enterGameScreen(){
   document.getElementById('gameScreen').classList.remove('hidden');
   buildBoard();
   renderAll();
+  startTimerTick();
 }
 
 function boot(){
