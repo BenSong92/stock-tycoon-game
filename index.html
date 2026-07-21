@@ -487,6 +487,7 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
       <div id="myIdentity"></div>
       <div class="tabs">
         <button class="tabBtn active" data-tab="trade">거래소</button>
+        <button class="tabBtn" data-tab="short">공매도</button>
         <button class="tabBtn" data-tab="finance">금융센터</button>
         <button class="tabBtn" data-tab="rank">순위</button>
         <button class="tabBtn" data-tab="log">중계</button>
@@ -496,6 +497,11 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
 
       <div class="tabPane active" id="pane-trade">
         <div class="stockGrid" id="stockGrid"></div>
+      </div>
+
+      <div class="tabPane" id="pane-short">
+        <div class="helpText" style="margin-top:0;" id="shortIntro"></div>
+        <div class="stockGrid" id="shortGrid" style="margin-top:.7rem;"></div>
       </div>
 
       <div class="tabPane" id="pane-finance">
@@ -509,6 +515,10 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
         <div class="helpText" style="margin-top:1.1rem;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;">전체 보유 종목</div>
         <div style="overflow-x:auto;margin-top:.4rem;">
           <table class="standings" id="holdingsTable"></table>
+        </div>
+        <div class="helpText" style="margin-top:1.1rem;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;">전체 공매도 현황</div>
+        <div style="overflow-x:auto;margin-top:.4rem;">
+          <table class="standings" id="shortsTable"></table>
         </div>
       </div>
 
@@ -637,7 +647,7 @@ function newGame(names, turnsPerPlayer){
   const companies = COMPANIES.map(c=>({...c, price:c.base, history:[c.base]}));
   const players = names.map((name,i)=>({
     name, color:PLAYER_COLORS[i], cash:START_CASH, loan:0, pos:0, lap:0,
-    holdings:{}, avgCost:{}, netWorthHistory:[{turn:0, value:START_CASH}],
+    holdings:{}, avgCost:{}, shorts:{}, shortAvg:{}, netWorthHistory:[{turn:0, value:START_CASH}],
     insiderUsedThisTurn:false, peerId:null,
   }));
   G = {
@@ -674,7 +684,12 @@ function portfolioValue(p){
   for(const id in p.holdings){ v += p.holdings[id]*company(id).price; }
   return v;
 }
-function netWorth(p){ return p.cash + portfolioValue(p) - p.loan; }
+function shortLiability(p){
+  let v=0;
+  for(const id in p.shorts){ v += (p.shorts[id]||0)*company(id).price; }
+  return v;
+}
+function netWorth(p){ return p.cash + portfolioValue(p) - p.loan - shortLiability(p); }
 
 /* ============ MARKET ============ */
 function applyMarketDrift(){
@@ -720,22 +735,32 @@ function applyCard(card){
 /* ============ MARGIN CALL ============ */
 function checkMarginCalls(){
   G.players.forEach(p=>{
-    if(p.loan<=0) return;
+    if(p.loan<=0 && shortLiability(p)<=0) return;
     if(netWorth(p)>=0) return;
-    logMsg(p.name+' 마진콜 발생! 보유 주식을 강제 매각합니다.', 'news');
-    const held = Object.keys(p.holdings).filter(id=>p.holdings[id]>0)
+    logMsg(p.name+' 마진콜 발생! 포지션을 강제로 정리합니다.', 'news');
+    const held = Object.keys(p.holdings).filter(id=>(p.holdings[id]||0)>0)
       .sort((a,b)=> (p.holdings[b]*company(b).price)-(p.holdings[a]*company(a).price));
     for(const id of held){
-      if(p.loan<=p.cash) break;
+      if(netWorth(p)>=0) break;
       const qty = p.holdings[id];
       const proceeds = qty*company(id).price*0.9;
       p.cash += proceeds;
-      p.holdings[id]=0;
-      const payoff = Math.min(p.loan, p.cash);
-      p.loan -= payoff; p.cash -= payoff;
+      p.holdings[id]=0; p.avgCost[id]=0;
       logMsg(p.name+'의 '+company(id).name+' '+qty+'주가 강제 청산되었습니다 (10% 손실).', 'news');
     }
-    if(p.loan>p.cash){
+    if(netWorth(p)<0){
+      const shortIds = Object.keys(p.shorts).filter(id=>(p.shorts[id]||0)>0)
+        .sort((a,b)=> ((company(b).price-(p.shortAvg[b]||0))*p.shorts[b]) - ((company(a).price-(p.shortAvg[a]||0))*p.shorts[a]));
+      for(const id of shortIds){
+        if(netWorth(p)>=0) break;
+        const qty = p.shorts[id];
+        const cost = qty*company(id).price*1.1;
+        p.cash -= cost;
+        p.shorts[id]=0; p.shortAvg[id]=0;
+        logMsg(p.name+'의 '+company(id).name+' 공매도 '+qty+'주가 강제 상환되었습니다 (10% 추가 손실).', 'news');
+      }
+    }
+    if(p.loan>0 && p.loan>p.cash){
       const payoff = Math.min(p.loan,Math.max(p.cash,0));
       p.loan -= payoff; p.cash -= payoff;
     }
@@ -889,6 +914,44 @@ function applyTradeImpact(c, qty, direction){
   c.price = Math.max(500, Math.round(c.price*(1+impactPct/100)));
   pushHistory(c);
 }
+function maxShortFor(p){
+  // same spirit as maxLoanFor: cap total open short exposure at LEVERAGE_MULT × net worth
+  return Math.max(0, Math.round(LEVERAGE_MULT*netWorth(p) - shortLiability(p)));
+}
+function execShort(playerIndex, companyId, qty){
+  const p = G.players[playerIndex];
+  qty = parseInt(qty)||0;
+  if(qty<=0) return;
+  const c = company(companyId);
+  if(!c) return;
+  const posValue = qty*c.price;
+  if(posValue>maxShortFor(p)){ logMsg('공매도 한도(레버리지 '+LEVERAGE_MULT+'배)를 초과했습니다.', 'news'); return; }
+  const proceeds = c.price*qty*(1-TRADE_FEE);
+  const prevQty = p.shorts[companyId]||0;
+  const prevAvg = p.shortAvg[companyId]||0;
+  const newQty = prevQty+qty;
+  p.shortAvg[companyId] = Math.round((prevAvg*prevQty + c.price*qty)/newQty);
+  p.shorts[companyId] = newQty;
+  p.cash += proceeds;
+  logMsg(p.name+'님이 '+c.name+' '+qty+'주 공매도 진입 (수령 '+fmt(proceeds)+', 평단 '+fmt(p.shortAvg[companyId])+')', 'news');
+  applyTradeImpact(c, qty, -1);
+}
+function execCoverShort(playerIndex, companyId, qty){
+  const p = G.players[playerIndex];
+  qty = parseInt(qty)||0;
+  const have = p.shorts[companyId]||0;
+  if(qty<=0||qty>have){ logMsg('공매도 보유량보다 많이 상환할 수 없습니다.', 'news'); return; }
+  const c = company(companyId);
+  const cost = c.price*qty*(1+TRADE_FEE);
+  if(cost>p.cash){ logMsg('공매도 상환 자금이 부족합니다.', 'news'); return; }
+  const avg = p.shortAvg[companyId]||c.price;
+  const plPct = avg>0? ((avg-c.price)/avg)*100 : 0;
+  p.cash -= cost;
+  p.shorts[companyId] -= qty;
+  if(p.shorts[companyId]<=0){ p.shorts[companyId]=0; p.shortAvg[companyId]=0; }
+  logMsg(p.name+'님이 '+c.name+' 공매도 '+qty+'주 상환 ('+fmt(cost)+', 손익 '+pctStr(plPct)+')', plPct>=0?'good':'news');
+  applyTradeImpact(c, qty, 1);
+}
 function execBorrow(playerIndex, amount){
   const p = G.players[playerIndex];
   amount = parseInt(amount)||0;
@@ -961,6 +1024,8 @@ function processHostAction(playerIndex, action){
     case 'roll': meta = execRoll(); break;
     case 'buy': execBuy(playerIndex, action.companyId, action.qty); break;
     case 'sell': execSell(playerIndex, action.companyId, action.qty); break;
+    case 'short': execShort(playerIndex, action.companyId, action.qty); break;
+    case 'coverShort': execCoverShort(playerIndex, action.companyId, action.qty); break;
     case 'borrow': execBorrow(playerIndex, action.amount); break;
     case 'repay': execRepay(playerIndex, action.amount); break;
     case 'insider': execInsider(playerIndex); break;
@@ -1077,6 +1142,8 @@ function uiRoll(){ if(myPlayerIndex!==G.currentIndex||G.hasRolled||G.animating||
 function uiEndTurn(){ if(myPlayerIndex!==G.currentIndex||!G.hasRolled||G.animating||G.ended) return; requestAction({type:'endTurn'}); }
 function uiBuy(companyId, qty){ if(myPlayerIndex!==G.currentIndex||G.animating||G.ended) return; requestAction({type:'buy', companyId, qty}); }
 function uiSell(companyId, qty){ if(myPlayerIndex!==G.currentIndex||G.animating||G.ended) return; requestAction({type:'sell', companyId, qty}); }
+function uiShort(companyId, qty){ if(myPlayerIndex!==G.currentIndex||G.animating||G.ended) return; requestAction({type:'short', companyId, qty}); }
+function uiCoverShort(companyId, qty){ if(myPlayerIndex!==G.currentIndex||G.animating||G.ended) return; requestAction({type:'coverShort', companyId, qty}); }
 function uiBorrow(amount){ if(myPlayerIndex!==G.currentIndex||G.animating||G.ended) return; requestAction({type:'borrow', amount}); }
 function uiRepay(amount){ if(myPlayerIndex!==G.currentIndex||G.animating||G.ended) return; requestAction({type:'repay', amount}); }
 function uiInsider(){ if(myPlayerIndex!==G.currentIndex||!G.insiderAvailableThisTurn||G.animating||G.ended) return; requestAction({type:'insider'}); }
@@ -1328,6 +1395,80 @@ function renderStockGrid(){
   });
 }
 
+function renderShortGrid(){
+  const intro = document.getElementById('shortIntro');
+  if(intro) intro.textContent = '하락에 베팅합니다. 주식을 빌려 지금 가격에 팔고(진입), 나중에 다시 사서(상환) 갚습니다 — 가격이 떨어질수록 이득, 오를수록 손해입니다. 진입 한도는 순자산의 '+LEVERAGE_MULT+'배까지입니다.';
+  const grid = document.getElementById('shortGrid');
+  if(!grid) return;
+  grid.innerHTML='';
+  const myTurn = myPlayerIndex===G.currentIndex;
+  const me = (myPlayerIndex>=0)? G.players[myPlayerIndex] : null;
+  G.companies.forEach(c=>{
+    const card = el('div','stockCard');
+    const prev = c.history.length>1? c.history[c.history.length-2]: c.price;
+    const delta = ((c.price-prev)/prev)*100;
+    const dir = delta>=0?'up':'down';
+    const head = el('div','sc-head');
+    head.innerHTML = '<span class="sc-tag" style="background:'+c.color+'"></span>'+
+      '<span class="sc-name">'+c.name+'</span>'+
+      '<span class="sc-price num">'+c.price.toLocaleString('ko-KR')+'</span>';
+    card.appendChild(head);
+    card.appendChild(el('div','sc-delta '+dir, (dir==='up'?'▲ ':'▼ ')+pctStr(delta)));
+    const canvas = document.createElement('canvas');
+    card.appendChild(canvas);
+    const shortQty = me? (me.shorts[c.id]||0) : 0;
+    const shortAvg = me? (me.shortAvg[c.id]||0) : 0;
+    const room = me? maxShortFor(me) : 0;
+    const maxShortQty = Math.floor(room/c.price);
+    let holdLine = '내 공매도 <b>'+shortQty+'주</b> · 상환 필요액 <b>'+fmt(shortQty*c.price)+'</b>';
+    if(shortQty>0 && shortAvg>0){
+      const plPct = ((shortAvg-c.price)/shortAvg)*100;
+      const plDir = plPct>=0?'up':'down';
+      holdLine += ' · 평단가 <b>'+fmt(shortAvg)+'</b> · <span class="sc-delta '+plDir+'">'+(plDir==='up'?'▲ ':'▼ ')+pctStr(plPct)+'</span>';
+    }
+    card.appendChild(el('div','sc-hold', holdLine));
+    const trade = el('div','sc-trade');
+    trade.innerHTML =
+      '<input type="number" min="1" value="1" id="sqty-'+c.id+'">'+
+      '<button class="miniBtn sell" data-act="short" data-id="'+c.id+'" '+(!myTurn?'disabled':'')+'>공매도</button>'+
+      '<button class="miniBtn max" data-act="maxshort" data-id="'+c.id+'" '+((!myTurn||maxShortQty<1)?'disabled':'')+' title="레버리지 한도 내 최대 공매도 수량">최대'+(maxShortQty>=1?' ('+maxShortQty+')':'')+'</button>'+
+      '<button class="miniBtn buy" data-act="cover" data-id="'+c.id+'" '+((!myTurn||shortQty<=0)?'disabled':'')+'>상환</button>';
+    card.appendChild(trade);
+    grid.appendChild(card);
+    requestAnimationFrame(()=>drawSparkline(canvas, c.history, c.color));
+  });
+  grid.querySelectorAll('button[data-act]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.id;
+      if(btn.dataset.act==='maxshort'){
+        const p = G.players[myPlayerIndex];
+        const qty = Math.floor(maxShortFor(p)/company(id).price);
+        if(qty>=1){
+          document.getElementById('sqty-'+id).value = qty;
+          uiShort(id, qty);
+        }
+        return;
+      }
+      const qty = parseInt(document.getElementById('sqty-'+id).value)||1;
+      if(btn.dataset.act==='short') uiShort(id, qty); else uiCoverShort(id, qty);
+    });
+  });
+}
+
+function renderShortsTable(){
+  const table = document.getElementById('shortsTable');
+  if(!table) return;
+  const header = '<tr><th>종목</th>'+G.players.map(p=>'<th style="color:'+p.color+'">'+p.name+(p===G.players[myPlayerIndex]?' (나)':'')+'</th>').join('')+'</tr>';
+  const rows = G.companies.map(c=>{
+    const cells = G.players.map(p=>{
+      const q = p.shorts[c.id]||0;
+      return '<td>'+(q>0? q+'주' : '<span style="color:var(--ink-3)">—</span>')+'</td>';
+    }).join('');
+    return '<tr><td class="name"><span style="width:8px;height:8px;border-radius:50%;background:'+c.color+';display:inline-block;"></span>'+c.name+'</td>'+cells+'</tr>';
+  }).join('');
+  table.innerHTML = header+rows;
+}
+
 function renderPlayerCards(){
   const wrap = document.getElementById('playerCardsWrap');
   wrap.innerHTML='';
@@ -1356,6 +1497,7 @@ function renderFinance(){
     '<div class="row"><span>보유 현금</span><b>'+fmt(p.cash)+'</b></div>'+
     '<div class="row"><span>대출 잔액</span><b>'+fmt(p.loan)+'</b></div>'+
     '<div class="row"><span>포트폴리오 평가액</span><b>'+fmt(portfolioValue(p))+'</b></div>'+
+    '<div class="row"><span>공매도 상환 필요액</span><b>'+fmt(shortLiability(p))+'</b></div>'+
     '<div class="row"><span>순자산</span><b>'+fmt(nw)+'</b></div>'+
     '<div class="row"><span>추가 대출 가능액 (순자산 대비 '+LEVERAGE_MULT+'배 한도)</span><b>'+fmt(room)+'</b></div>'+
     '<div class="row"><span>대출 이자율</span><b>5% · 5턴마다 부과 (다음 정산: 턴 '+(Math.ceil((G.turnCount+1)/5)*5)+')</b></div>'+
@@ -1468,9 +1610,11 @@ function renderAll(){
   renderBoardTokens();
   renderPlayerCards();
   renderStockGrid();
+  renderShortGrid();
   renderFinance();
   renderStandings();
   renderHoldingsTable();
+  renderShortsTable();
   renderLog();
   renderTicker();
   renderCenter();
