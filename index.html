@@ -220,9 +220,34 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 /* ---------- Sidebar ---------- */
 .sidebar{flex:1 1 380px;min-width:320px;display:flex;flex-direction:column;gap:.9rem;}
 #myIdentity{
-  font-size:.8rem;padding:.5rem .75rem;border:1px solid var(--border);border-radius:8px;background:var(--panel);
+  position:sticky;top:34px;z-index:35;
+  font-size:.8rem;padding:.55rem .75rem;border:1px solid var(--border-strong);border-radius:8px;background:var(--panel);
+  box-shadow:0 6px 16px rgba(0,0,0,.35);
 }
 #myIdentity b{font-weight:700;}
+#myIdentity .cashLine{
+  font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--ink);
+  margin-top:.2rem;position:relative;display:inline-block;
+}
+#myIdentity .cashLine.flash-up{animation:cashFlashUp .8s ease;}
+#myIdentity .cashLine.flash-down{animation:cashFlashDown .8s ease;}
+@keyframes cashFlashUp{0%{color:var(--good);text-shadow:0 0 12px var(--good-wash);} 100%{color:var(--ink);text-shadow:none;}}
+@keyframes cashFlashDown{0%{color:var(--critical);text-shadow:0 0 12px var(--critical-wash);} 100%{color:var(--ink);text-shadow:none;}}
+.cashDelta{
+  position:absolute;left:100%;top:0;margin-left:.5rem;font-family:var(--mono);font-weight:700;font-size:.8rem;
+  white-space:nowrap;animation:deltaFloat 1.1s ease forwards;pointer-events:none;
+}
+.cashDelta.up{color:var(--good);}
+.cashDelta.down{color:var(--critical);}
+@keyframes deltaFloat{
+  0%{opacity:0;transform:translateY(4px);}
+  15%{opacity:1;transform:translateY(0);}
+  70%{opacity:1;}
+  100%{opacity:0;transform:translateY(-16px);}
+}
+@media (prefers-reduced-motion:reduce){
+  #myIdentity .cashLine.flash-up,#myIdentity .cashLine.flash-down,.cashDelta{animation:none;}
+}
 .tabs{display:flex;gap:.3rem;border-bottom:1px solid var(--border);}
 .tabBtn{
   background:none;border:none;color:var(--ink-3);padding:.55rem .9rem;font-size:.82rem;cursor:pointer;
@@ -1367,12 +1392,25 @@ function renderHeader(){
     G.players.length+'인 플레이 · 턴 '+Math.min(G.turnCount+1,G.maxTurns)+'/'+G.maxTurns;
 }
 
+let lastSeenCash = null;
 function renderMyIdentity(){
   const box = document.getElementById('myIdentity');
   const me = G.players[myPlayerIndex];
   if(!me){ box.textContent=''; return; }
+  const changed = lastSeenCash!==null && me.cash!==lastSeenCash;
+  const diff = changed? me.cash-lastSeenCash : 0;
   box.innerHTML = '나: <b style="color:'+me.color+'">'+(PLAYER_TOKENS[myPlayerIndex]||'')+' '+me.name+'</b>'+
-    (myPlayerIndex===G.currentIndex? ' — <b style="color:var(--accent-strong)">지금 당신 차례입니다</b>' : ' — 다른 사람 차례를 기다리는 중');
+    (myPlayerIndex===G.currentIndex? ' — <b style="color:var(--accent-strong)">지금 당신 차례입니다</b>' : ' — 다른 사람 차례를 기다리는 중')+
+    '<div class="cashLine">내 현금 '+fmt(me.cash)+
+    (changed? '<span class="cashDelta '+(diff>=0?'up':'down')+'">'+(diff>=0?'+'+fmt(diff):fmt(diff))+'</span>' : '')+
+    '</div>';
+  if(changed){
+    const line = box.querySelector('.cashLine');
+    const cls = diff>=0?'flash-up':'flash-down';
+    line.classList.add(cls);
+    setTimeout(()=>line.classList.remove(cls), 800);
+  }
+  lastSeenCash = me.cash;
 }
 
 function renderAll(){
