@@ -98,7 +98,7 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 #setupScreen{max-width:640px;margin:2rem auto;}
 .card{
   background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
-  padding:1.4rem 1.5rem;
+  padding:1.4rem 1.5rem;box-shadow:0 10px 24px -12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);
 }
 .card + .card{margin-top:1rem;}
 .card h2{
@@ -138,16 +138,19 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 
 /* ---------- Game layout ---------- */
 #gameScreen{display:flex;gap:1.25rem;align-items:flex-start;flex-wrap:wrap;}
-.boardWrap{flex:1 1 560px;max-width:640px;min-width:340px;}
+.boardWrap{flex:1 1 560px;max-width:640px;min-width:340px;perspective:1500px;padding-bottom:1.4rem;}
 .board{
   display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(6,1fr);
   gap:5px;width:100%;aspect-ratio:1/1;
   background:var(--panel-3);padding:5px;border-radius:12px;border:1px solid var(--border-strong);
+  transform-style:preserve-3d;transform:rotateX(15deg);transform-origin:50% 100%;
+  box-shadow:0 42px 55px -24px rgba(0,0,0,.65),0 2px 0 rgba(255,255,255,.05) inset;
 }
 .tile{
   position:relative;background:var(--panel);border:1px solid var(--border);border-radius:6px;
   display:flex;flex-direction:column;justify-content:space-between;
   padding:clamp(.15rem,.9vw,.3rem) clamp(.18rem,1vw,.35rem);overflow:hidden;font-size:.62rem;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),inset 0 -3px 5px rgba(0,0,0,.4),0 2px 3px rgba(0,0,0,.35);
 }
 .tile .tType{
   font-size:clamp(.46rem,1.7vw,.58rem);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);
@@ -161,9 +164,12 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 .tile.payday{background:linear-gradient(160deg,var(--panel),rgba(47,191,79,0.13));border:1px solid var(--good);}
 .tile .tokens{position:absolute;right:3px;bottom:3px;display:flex;gap:2px;flex-wrap:wrap-reverse;max-width:70%;justify-content:flex-end;}
 .token{
+  --tokColor:var(--accent);
   width:clamp(15px,4.2vw,22px);height:clamp(15px,4.2vw,22px);border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-size:clamp(.62rem,2.3vw,.9rem);line-height:1;font-weight:700;border:1.5px solid rgba(0,0,0,0.5);
-  box-shadow:0 1px 3px rgba(0,0,0,.5);flex:none;transform-origin:50% 100%;
+  font-size:clamp(.62rem,2.3vw,.9rem);line-height:1;font-weight:700;border:1.5px solid rgba(0,0,0,0.55);
+  background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.75), rgba(255,255,255,0) 48%), var(--tokColor);
+  box-shadow:0 3px 5px rgba(0,0,0,.55),inset 0 -3px 4px rgba(0,0,0,.3),inset 0 2px 2px rgba(255,255,255,.35);
+  flex:none;transform-origin:50% 100%;
 }
 @keyframes tokenHop{
   0%{transform:translateY(0) scale(1,1);}
@@ -177,35 +183,66 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
   100%{box-shadow:0 0 0 12px rgba(201,163,92,0);}
 }
 .tile.landed{animation:tileLanded .55s ease-out;}
-@media (prefers-reduced-motion:reduce){ .token.hop, .tile.landed{animation:none;} }
+@media (prefers-reduced-motion:reduce){ .token.hop, .tile.landed{animation:none;} .board{transform:none;} }
 .centerPanel{
   grid-column:2/6;grid-row:2/6;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;padding:1rem;text-align:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -3px 6px rgba(0,0,0,.35);
 }
 .centerPanel .turnLabel{font-size:clamp(.56rem,1.8vw,.68rem);letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);}
 .centerPanel .turnName{font-family:var(--serif);font-size:clamp(.85rem,3.6vw,1.3rem);font-weight:700;}
-.diceRow{display:flex;gap:.5rem;}
-.die{
-  width:clamp(30px,8vw,42px);height:clamp(30px,8vw,42px);border-radius:8px;background:var(--panel-3);border:1px solid var(--border-strong);
-  display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:clamp(.9rem,3.2vw,1.3rem);font-weight:700;color:var(--accent-strong);
+
+/* ---------- 3D dice cube ---------- */
+.diceRow{display:flex;gap:1.1rem;perspective:260px;padding:.35rem 0;}
+.die3d{
+  --dsize:clamp(30px,8vw,42px);
+  width:var(--dsize);height:var(--dsize);position:relative;
+  transform-style:preserve-3d;transform:rotateX(0deg) rotateY(0deg);
+  transition:transform .75s cubic-bezier(.2,.7,.25,1);
 }
+.dieFace{
+  position:absolute;inset:0;border-radius:calc(var(--dsize)*.16);
+  background:linear-gradient(155deg,#fdfaf2,#e6ddc8);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.18),inset 0 -3px 5px rgba(0,0,0,.14),0 0 0 1px rgba(201,163,92,.25);
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+  padding:16%;
+}
+.dieFace i{width:100%;aspect-ratio:1;border-radius:50%;background:#1c1710;align-self:center;justify-self:center;box-shadow:inset 0 1px 1px rgba(255,255,255,.15);}
+.f1{transform:rotateY(0deg) translateZ(calc(var(--dsize)/2));}
+.f6{transform:rotateY(180deg) translateZ(calc(var(--dsize)/2));}
+.f2{transform:rotateY(90deg) translateZ(calc(var(--dsize)/2));}
+.f5{transform:rotateY(-90deg) translateZ(calc(var(--dsize)/2));}
+.f3{transform:rotateX(90deg) translateZ(calc(var(--dsize)/2));}
+.f4{transform:rotateX(-90deg) translateZ(calc(var(--dsize)/2));}
+.f1 i:nth-child(1){grid-column:2;grid-row:2;}
+.f2 i:nth-child(1){grid-column:1;grid-row:1;}
+.f2 i:nth-child(2){grid-column:3;grid-row:3;}
+.f3 i:nth-child(1){grid-column:1;grid-row:1;}
+.f3 i:nth-child(2){grid-column:2;grid-row:2;}
+.f3 i:nth-child(3){grid-column:3;grid-row:3;}
+.f4 i:nth-child(1){grid-column:1;grid-row:1;}
+.f4 i:nth-child(2){grid-column:3;grid-row:1;}
+.f4 i:nth-child(3){grid-column:1;grid-row:3;}
+.f4 i:nth-child(4){grid-column:3;grid-row:3;}
+.f5 i:nth-child(1){grid-column:1;grid-row:1;}
+.f5 i:nth-child(2){grid-column:3;grid-row:1;}
+.f5 i:nth-child(3){grid-column:2;grid-row:2;}
+.f5 i:nth-child(4){grid-column:1;grid-row:3;}
+.f5 i:nth-child(5){grid-column:3;grid-row:3;}
+.f6 i:nth-child(1){grid-column:1;grid-row:1;}
+.f6 i:nth-child(2){grid-column:1;grid-row:2;}
+.f6 i:nth-child(3){grid-column:1;grid-row:3;}
+.f6 i:nth-child(4){grid-column:3;grid-row:1;}
+.f6 i:nth-child(5){grid-column:3;grid-row:2;}
+.f6 i:nth-child(6){grid-column:3;grid-row:3;}
+@media (prefers-reduced-motion:reduce){ .die3d{transition:none;} }
+
 .rollBtn{
   padding:clamp(.5rem,2.2vw,.65rem) clamp(.8rem,3.6vw,1.4rem);border-radius:8px;border:1px solid var(--accent);background:var(--accent-wash);
   color:var(--accent-strong);font-weight:700;cursor:pointer;font-size:clamp(.78rem,2.6vw,.9rem);min-height:40px;
 }
 .rollBtn:hover:not(:disabled){background:var(--accent);color:#1a1200;}
 .rollBtn:disabled{opacity:.35;cursor:not-allowed;}
-.die.rolling{animation:diceShake .35s ease-in-out infinite;}
-@keyframes diceShake{
-  0%{transform:rotate(0deg) scale(1);}
-  25%{transform:rotate(-10deg) scale(1.06);}
-  50%{transform:rotate(7deg) scale(0.96);}
-  75%{transform:rotate(-5deg) scale(1.05);}
-  100%{transform:rotate(0deg) scale(1);}
-}
-.die.reveal{animation:dicePop .35s ease;box-shadow:0 0 0 2px var(--accent);}
-@keyframes dicePop{0%{transform:scale(0.55);} 60%{transform:scale(1.18);} 100%{transform:scale(1);}}
-@media (prefers-reduced-motion:reduce){ .die.rolling,.die.reveal{animation:none;} }
 .turnTimerWrap{width:100%;max-width:220px;height:6px;background:var(--panel-3);border-radius:3px;overflow:hidden;margin-top:.3rem;}
 .turnTimerBar{height:100%;width:100%;background:var(--good);transition:width 1s linear, background .3s;}
 .turnTimerText{font-family:var(--mono);font-size:.68rem;color:var(--ink-3);margin-top:.15rem;}
@@ -260,6 +297,7 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 .playerCard{
   border:1px solid var(--border);border-radius:8px;padding:.7rem .85rem;background:var(--panel);
   display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem;
+  box-shadow:0 6px 14px -8px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.04);
 }
 .playerCard.current{border-color:var(--accent);background:var(--accent-wash);}
 .playerCard.me{outline:1px dashed var(--border-strong);}
@@ -272,8 +310,10 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 @media(max-width:900px){.stockGrid{grid-template-columns:1fr;}}
 .stockCard{
   border:1px solid var(--border);border-radius:8px;padding:.65rem .7rem;background:var(--panel);
-  transition:border-color .2s;
+  transition:border-color .2s,transform .2s;
+  box-shadow:0 6px 14px -8px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.04);
 }
+.stockCard:hover{transform:translateY(-2px);}
 .stockCard.highlight{border-color:var(--accent);}
 .stockCard .sc-head{display:flex;align-items:center;gap:.4rem;margin-bottom:.25rem;}
 .stockCard .sc-tag{width:9px;height:9px;border-radius:50%;flex:none;}
@@ -300,7 +340,7 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 .miniBtn.max:hover:not(:disabled){border-color:var(--accent);color:var(--accent-strong);}
 .miniBtn:disabled{opacity:.35;cursor:not-allowed;}
 
-.financeBox{border:1px solid var(--border);border-radius:8px;padding:.85rem;background:var(--panel);margin-bottom:.7rem;}
+.financeBox{border:1px solid var(--border);border-radius:8px;padding:.85rem;background:var(--panel);margin-bottom:.7rem;box-shadow:0 6px 14px -8px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.04);}
 .financeBox .row{display:flex;justify-content:space-between;font-size:.82rem;padding:.25rem 0;color:var(--ink-2);}
 .financeBox .row b{color:var(--ink);font-family:var(--mono);}
 .financeBox .actions{display:flex;gap:.4rem;margin-top:.6rem;flex-wrap:wrap;}
@@ -1056,24 +1096,9 @@ function animateRoll(meta){
   const rollBtn = document.getElementById('rollBtn'), endBtn = document.getElementById('endTurnBtn');
   if(rollBtn) rollBtn.disabled = true;
   if(endBtn) endBtn.disabled = true;
-  if(die1) die1.classList.add('rolling');
-  if(die2) die2.classList.add('rolling');
-  let shuffleCount=0;
-  const shuffleTimer = setInterval(()=>{
-    if(die1) die1.textContent = 1+Math.floor(Math.random()*6);
-    if(die2) die2.textContent = 1+Math.floor(Math.random()*6);
-    shuffleCount++;
-    if(shuffleCount>=6){
-      clearInterval(shuffleTimer);
-      if(die1){ die1.classList.remove('rolling'); die1.textContent=meta.dice[0]; die1.classList.add('reveal'); }
-      if(die2){ die2.classList.remove('rolling'); die2.textContent=meta.dice[1]; die2.classList.add('reveal'); }
-      setTimeout(()=>{
-        if(die1) die1.classList.remove('reveal');
-        if(die2) die2.classList.remove('reveal');
-        hopTokenThenReveal();
-      },350);
-    }
-  },80);
+  if(die1) setDieToValue(die1, 0, meta.dice[0]);
+  if(die2) setDieToValue(die2, 1, meta.dice[1]);
+  setTimeout(hopTokenThenReveal, 780);
 
   function hopTokenThenReveal(){
     let cur = meta.from, count=0;
@@ -1104,6 +1129,31 @@ function el(tag, cls, html){
   if(cls) e.className=cls;
   if(html!==undefined) e.innerHTML=html;
   return e;
+}
+
+function dieCubeHTML(id){
+  const pips = n=>'<i></i>'.repeat(n);
+  return '<div class="die3d" id="'+id+'">'+
+    '<div class="dieFace f1">'+pips(1)+'</div>'+
+    '<div class="dieFace f2">'+pips(2)+'</div>'+
+    '<div class="dieFace f3">'+pips(3)+'</div>'+
+    '<div class="dieFace f4">'+pips(4)+'</div>'+
+    '<div class="dieFace f5">'+pips(5)+'</div>'+
+    '<div class="dieFace f6">'+pips(6)+'</div>'+
+  '</div>';
+}
+const DIE_ROTATIONS = {1:{x:0,y:0}, 2:{x:0,y:-90}, 3:{x:-90,y:0}, 4:{x:90,y:0}, 5:{x:0,y:90}, 6:{x:0,y:180}};
+const dieRotState = [{x:0,y:0},{x:0,y:0}];
+function setDieToValue(dieEl, idx, value){
+  const target = DIE_ROTATIONS[value];
+  const cur = dieRotState[idx];
+  const spinsX = 2, spinsY = 3;
+  const deltaX = (((target.x - (cur.x%360)) % 360)+360)%360;
+  const deltaY = (((target.y - (cur.y%360)) % 360)+360)%360;
+  const newX = cur.x + spinsX*360 + deltaX;
+  const newY = cur.y + spinsY*360 + deltaY;
+  dieEl.style.transform = 'rotateX('+newX+'deg) rotateY('+newY+'deg)';
+  dieRotState[idx] = {x:newX, y:newY};
 }
 
 function buildBoard(){
@@ -1140,7 +1190,7 @@ function buildBoard(){
   center.innerHTML =
     '<div class="turnLabel" id="turnLabel">현재 차례</div>'+
     '<div class="turnName" id="turnName"></div>'+
-    '<div class="diceRow"><div class="die" id="die1">-</div><div class="die" id="die2">-</div></div>'+
+    '<div class="diceRow">'+dieCubeHTML('die1')+dieCubeHTML('die2')+'</div>'+
     '<div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;">'+
       '<button class="rollBtn" id="rollBtn">주사위 굴리기</button>'+
       '<button class="endTurnBtn" id="endTurnBtn">턴 종료</button>'+
@@ -1159,7 +1209,7 @@ function renderBoardTokens(){
     const wrap = document.getElementById('tok-'+p.pos);
     if(!wrap) return;
     const tok = el('div','token', PLAYER_TOKENS[i]||p.name.slice(0,1));
-    tok.style.background = p.color;
+    tok.style.setProperty('--tokColor', p.color);
     wrap.appendChild(tok);
   });
   G.tiles.forEach((tile,i)=>{
@@ -1177,7 +1227,7 @@ function renderBoardTokensAt(movingIdx, pos){
     const wrap = document.getElementById('tok-'+displayPos);
     if(!wrap) return;
     const tok = el('div','token'+(i===movingIdx?' hop':''), PLAYER_TOKENS[i]||p.name.slice(0,1));
-    tok.style.background=p.color;
+    tok.style.setProperty('--tokColor', p.color);
     wrap.appendChild(tok);
   });
 }
