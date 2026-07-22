@@ -93,6 +93,12 @@ header.masthead .sub{
   font-family:var(--sans);
 }
 header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-align:right;}
+.headerRight{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;justify-content:flex-end;}
+.rulesBtn{
+  border:1px solid var(--border-strong);background:var(--panel-2);color:var(--ink-2);
+  padding:.42rem .85rem;border-radius:999px;font-size:.76rem;cursor:pointer;white-space:nowrap;font-weight:600;
+}
+.rulesBtn:hover{border-color:var(--accent);color:var(--accent-strong);background:var(--accent-wash);}
 
 /* ---------- Setup / Lobby ---------- */
 #setupScreen{max-width:640px;margin:2rem auto;}
@@ -455,6 +461,12 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
   background:var(--accent-wash);color:var(--accent-strong);font-weight:700;cursor:pointer;
 }
 .modal .closeBtn:hover{background:var(--accent);color:#1a1200;}
+.modal.wide{max-width:640px;}
+.rulesBody{max-height:58vh;overflow-y:auto;margin-top:.6rem;padding-right:.4rem;}
+.rulesBody h4{font-family:var(--serif);font-size:.95rem;color:var(--accent-strong);margin:1.1rem 0 .3rem;}
+.rulesBody h4:first-child{margin-top:0;}
+.rulesBody p{margin:.2rem 0;font-size:.83rem;line-height:1.6;color:var(--ink-2);}
+.rulesBody p b{color:var(--ink);}
 
 /* end game */
 #endModal .rankRow{display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--border);}
@@ -474,7 +486,10 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
       <h1>주가<span>조작</span>단</h1>
       <div class="sub">Insider Trading Board Game · 2–4인용 실시간 온라인 보드게임</div>
     </div>
-    <div class="status" id="headerStatus"></div>
+    <div class="headerRight">
+      <button class="rulesBtn" id="rulesBtn">게임 방법</button>
+      <div class="status" id="headerStatus"></div>
+    </div>
   </header>
 
   <!-- ========== SETUP / LOBBY ========== -->
@@ -1870,15 +1885,45 @@ function showWarningModal(payload){
     '<p>'+payload.text+'</p>'
   );
 }
-function openModal(innerHtml){
+function openModal(innerHtml, extraClass){
   const existing = document.getElementById('modalOverlay');
   if(existing) existing.remove();
   const overlay = el('div','overlay');
   overlay.id='modalOverlay';
-  const modal = el('div','modal', innerHtml+'<button class="closeBtn" id="modalClose">확인</button>');
+  const modal = el('div','modal'+(extraClass?(' '+extraClass):''), innerHtml+'<button class="closeBtn" id="modalClose">확인</button>');
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
   document.getElementById('modalClose').addEventListener('click', ()=>overlay.remove());
+}
+
+function showRulesModal(){
+  openModal(
+    '<div class="kicker">가이드 · How to Play</div>'+
+    '<h3>주가조작단 게임 방법</h3>'+
+    '<div class="rulesBody">'+
+      '<h4>목표</h4>'+
+      '<p>정해진 턴이 모두 끝나면 <b>순자산</b>(현금 + 주식 평가액 − 대출 − 공매도 평가손실)이 가장 높은 플레이어가 승리합니다.</p>'+
+      '<h4>시작하기</h4>'+
+      '<p>한 명이 "방 만들기"로 호스트가 되어 초대 링크를 만들고, 그 링크로 최대 3명이 더 참가할 수 있습니다(최대 4명). 각자 시드머니 <b>100만원</b>으로 시작합니다.</p>'+
+      '<h4>턴 진행</h4>'+
+      '<p>자기 차례에 주사위를 굴려 보드를 이동합니다. 한 턴은 <b>90초</b> 제한이 있고, 시간 안에 행동하지 않으면 자동으로 주사위를 굴리고 턴이 넘어갑니다.</p>'+
+      '<h4>보드 칸</h4>'+
+      '<p><b>월급날</b> — 급여 20만원 지급 · <b>기업 칸</b> — 보유 중이면 배당금 지급 · <b>속보 칸</b> — 뉴스 카드가 즉시 발동되어 주가 변동 · <b>정보원 칸</b> — 이번 턴에 한해 특종 정보 열람 가능 · <b>은행 칸</b> — 이자 캐시백 지급</p>'+
+      '<h4>거래소</h4>'+
+      '<p>자기 차례에 아무 종목이나 매수/매도할 수 있습니다. 매수하면 그 종목 가격이 오르고 매도하면 내려갑니다 — 실제 시장처럼 내 거래가 가격에 영향을 줍니다. "최대" 버튼으로 가진 돈만큼 한 번에 살 수 있습니다.</p>'+
+      '<h4>공매도</h4>'+
+      '<p>하락에 베팅하는 기능입니다. "공매도"로 진입하면 즉시 현금을 받고, 나중에 "상환"으로 다시 사서 갚아야 합니다. 진입가보다 가격이 떨어지면 이득, 오르면 손해입니다.</p>'+
+      '<h4>레버리지(대출)</h4>'+
+      '<p>순자산의 최대 <b>2배</b>까지 대출받아 매수·공매도 자금으로 쓸 수 있습니다. <b>5턴마다 5%</b> 이자가 자동으로 부과되며, 부과 1턴 전에 예고 알림이 뜹니다.</p>'+
+      '<h4>특종 정보(내부자 정보)</h4>'+
+      '<p>정보원 칸에 도착하면 비용을 내고 다음에 터질 뉴스를 미리 볼 수 있습니다. 단, 15% 확률로 적발되어 벌금을 물 수 있습니다. 받은 정보는 "뉴스/정보" 탭에서 다시 볼 수 있습니다.</p>'+
+      '<h4>반대매매(마진콜)</h4>'+
+      '<p>순자산이 마이너스가 되면 보유 주식과 공매도 포지션이 페널티(10%)와 함께 강제로 정리됩니다. 위험 구간(순자산이 레버리지 노출의 20% 미만)에 들어서면 미리 경고 알림이 뜹니다.</p>'+
+      '<h4>승리</h4>'+
+      '<p>설정한 턴 수가 모두 끝나면 그 시점의 순자산 1위가 최종 승자입니다.</p>'+
+    '</div>',
+    'wide'
+  );
 }
 
 /* ============ END GAME ============ */
@@ -2011,6 +2056,7 @@ function boot(){
   document.getElementById('chatInput').addEventListener('keydown', e=>{
     if(e.key==='Enter'){ e.preventDefault(); document.getElementById('chatSendBtn').click(); }
   });
+  document.getElementById('rulesBtn').addEventListener('click', showRulesModal);
 }
 
 document.querySelectorAll('.tabBtn').forEach(btn=>{
