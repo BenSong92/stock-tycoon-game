@@ -378,6 +378,18 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
 #logList li.goodline{border-color:var(--good);}
 #logList li.goldline{border-color:var(--accent);}
 
+.newsCard{
+  border:1px solid var(--border);border-left:3px solid var(--border-strong);border-radius:8px;
+  padding:.55rem .7rem;background:var(--panel);margin-bottom:.5rem;font-size:.8rem;
+  box-shadow:0 6px 14px -8px rgba(0,0,0,.5);
+}
+.newsCard .newsTurn{font-family:var(--mono);font-size:.65rem;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;}
+.newsCard .newsTitle{font-weight:700;margin:.2rem 0;color:var(--ink);}
+.newsCard .newsDetail{color:var(--ink-2);font-size:.76rem;}
+.newsCard.up{border-left-color:var(--good);}
+.newsCard.down{border-left-color:var(--critical);}
+.newsCard.caught{border-left-color:var(--critical);}
+
 /* ---------- Mobile ---------- */
 @media (max-width:760px){
   #app{padding:.85rem .85rem 2.5rem;}
@@ -495,6 +507,7 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
       <div class="tabs">
         <button class="tabBtn active" data-tab="trade">거래소</button>
         <button class="tabBtn" data-tab="short">공매도</button>
+        <button class="tabBtn" data-tab="news">뉴스/정보</button>
         <button class="tabBtn" data-tab="finance">금융센터</button>
         <button class="tabBtn" data-tab="rank">순위</button>
         <button class="tabBtn" data-tab="log">중계</button>
@@ -509,6 +522,13 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
       <div class="tabPane" id="pane-short">
         <div class="helpText" style="margin-top:0;" id="shortIntro"></div>
         <div class="stockGrid" id="shortGrid" style="margin-top:.7rem;"></div>
+      </div>
+
+      <div class="tabPane" id="pane-news">
+        <div class="helpText" style="margin-top:0;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;">내가 얻은 특종 정보 (나만 보임)</div>
+        <div id="myInsiderList" style="margin-top:.5rem;"></div>
+        <div class="helpText" style="margin-top:1.2rem;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;">시장 속보 히스토리</div>
+        <div id="newsHistoryList" style="margin-top:.5rem;"></div>
       </div>
 
       <div class="tabPane" id="pane-finance">
@@ -637,6 +657,7 @@ let timerTickHandle = null;
 /* ============ STATE ============ */
 let G = null;
 let myPlayerIndex = -1;
+let myInsiderHistory = []; // local-only: private insider tips this browser has received
 let lobby = []; // [{peerId,name}] — authoritative on host
 let pendingSettings = { turnsPerPlayer: 18 };
 const NET = { role:null, peer:null, hostConn:null, guestConns:{}, myPeerId:null };
@@ -669,6 +690,7 @@ function newGame(names, turnsPerPlayer){
     animating:false,
     insiderAvailableThisTurn:false,
     log:[],
+    newsHistory:[],
     ended:false,
     turnsSinceNews:0,
     nextForcedNewsIn: 5+Math.floor(Math.random()*3),
@@ -723,20 +745,24 @@ function peekCard(){
 }
 function applyCard(card){
   const jitter = ()=> (Math.random()*4-2);
+  let result;
   if(card.c){
     const c = company(card.c);
     const actual = card.pct + jitter();
     c.price = Math.max(500, Math.round(c.price*(1+actual/100)));
     pushHistory(c);
-    return {headline:card.h, detail:c.name+' 주가 '+pctStr(actual), pct:actual, target:c.name};
+    result = {headline:card.h, detail:c.name+' 주가 '+pctStr(actual), pct:actual, target:c.name};
   } else {
     G.companies.forEach(c=>{
       const actual = card.pct + jitter();
       c.price = Math.max(500, Math.round(c.price*(1+actual/100)));
       pushHistory(c);
     });
-    return {headline:card.h, detail:'시장 전체 평균 '+pctStr(card.pct), pct:card.pct, target:'전체 시장'};
+    result = {headline:card.h, detail:'시장 전체 평균 '+pctStr(card.pct), pct:card.pct, target:'전체 시장'};
   }
+  G.newsHistory.push({turn:G.turnCount+1, headline:result.headline, detail:result.detail, pct:result.pct, target:result.target});
+  if(G.newsHistory.length>60) G.newsHistory.shift();
+  return result;
 }
 
 /* ============ MARGIN CALL ============ */
@@ -1513,6 +1539,37 @@ function renderShortsTable(){
   table.innerHTML = header+rows;
 }
 
+function renderNewsTab(){
+  const insiderBox = document.getElementById('myInsiderList');
+  if(insiderBox){
+    if(myInsiderHistory.length===0){
+      insiderBox.innerHTML = '<div class="helpText" style="margin-top:0;">아직 취재한 특종 정보가 없습니다. 정보원 타일에 도착하면 열람할 수 있어요.</div>';
+    } else {
+      insiderBox.innerHTML = myInsiderHistory.map(item=>{
+        if(item.caught){
+          return '<div class="newsCard caught"><div class="newsTurn">턴 '+item.turn+'</div><div class="newsTitle">적발됨</div>'+
+            '<div class="newsDetail">취재 비용 '+fmt(item.cost)+' + 벌금 '+fmt(item.fine)+'</div></div>';
+        }
+        const dir = item.pct>=0?'up':'down';
+        return '<div class="newsCard '+dir+'"><div class="newsTurn">턴 '+item.turn+'</div><div class="newsTitle">'+item.headline+'</div>'+
+          '<div class="newsDetail">대상: '+item.target+' · 예상 변동 '+(dir==='up'?'▲ ':'▼ ')+pctStr(item.pct)+' · 비용 '+fmt(item.cost)+'</div></div>';
+      }).join('');
+    }
+  }
+  const newsBox = document.getElementById('newsHistoryList');
+  if(newsBox){
+    if(!G.newsHistory || G.newsHistory.length===0){
+      newsBox.innerHTML = '<div class="helpText" style="margin-top:0;">아직 발생한 속보가 없습니다.</div>';
+    } else {
+      newsBox.innerHTML = G.newsHistory.slice().reverse().map(item=>{
+        const dir = item.pct>=0?'up':'down';
+        return '<div class="newsCard '+dir+'"><div class="newsTurn">턴 '+item.turn+'</div><div class="newsTitle">'+item.headline+'</div>'+
+          '<div class="newsDetail">'+item.detail+'</div></div>';
+      }).join('');
+    }
+  }
+}
+
 function renderPlayerCards(){
   const wrap = document.getElementById('playerCardsWrap');
   wrap.innerHTML='';
@@ -1659,6 +1716,7 @@ function renderAll(){
   renderStandings();
   renderHoldingsTable();
   renderShortsTable();
+  renderNewsTab();
   renderLog();
   renderTicker();
   renderCenter();
@@ -1695,12 +1753,14 @@ function showNewsModal(result){
 }
 function showInsiderModal(r){
   if(r.caught){
+    myInsiderHistory.unshift({turn:G.turnCount+1, caught:true, cost:r.cost, fine:r.fine});
     openModal(
       '<div class="kicker" style="color:var(--critical)">적발 · Compliance Alert</div>'+
       '<h3>정보원이 미행당했습니다</h3>'+
       '<p>취재 비용 '+fmt(r.cost)+'에 더해 벌금 '+fmt(r.fine)+'이 부과되었습니다. 다음엔 더 조심하세요.</p>'
     );
   } else {
+    myInsiderHistory.unshift({turn:G.turnCount+1, caught:false, headline:r.headline, target:r.target, pct:r.pct, cost:r.cost});
     const dir = r.pct>=0?'up':'down';
     openModal(
       '<div class="kicker">특종 · Insider Memo (나만 볼 수 있음)</div>'+
