@@ -390,6 +390,25 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
 .newsCard.down{border-left-color:var(--critical);}
 .newsCard.caught{border-left-color:var(--critical);}
 
+.chatList{
+  max-height:340px;min-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:.45rem;
+  border:1px solid var(--border);border-radius:8px;padding:.65rem .7rem;background:var(--panel);margin-bottom:.6rem;
+  box-shadow:0 6px 14px -8px rgba(0,0,0,.5);
+}
+.chatMsg{font-size:.83rem;line-height:1.45;max-width:88%;word-break:break-word;color:var(--ink-2);}
+.chatMsg b{font-weight:700;color:var(--ink);margin-right:.15rem;}
+.chatMsg.mine{align-self:flex-end;text-align:right;}
+.chatInputRow{display:flex;gap:.4rem;}
+.chatInputRow input{
+  flex:1;min-width:0;background:var(--panel-2);border:1px solid var(--border-strong);border-radius:7px;
+  color:var(--ink);padding:.55rem .7rem;font-size:.85rem;
+}
+.tabBtn{position:relative;}
+.tabBtn .badge{
+  display:inline-block;min-width:16px;height:16px;border-radius:8px;background:var(--critical);color:#fff;
+  font-size:.62rem;font-weight:700;line-height:16px;margin-left:.3rem;padding:0 .3rem;vertical-align:2px;
+}
+
 /* ---------- Mobile ---------- */
 @media (max-width:760px){
   #app{padding:.85rem .85rem 2.5rem;}
@@ -407,7 +426,7 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
   .card{padding:1.1rem 1.1rem;}
 }
 @media (max-width:600px){
-  .nameRow input, .inviteRow input, .financeBox input, .sc-trade input{font-size:16px;}
+  .nameRow input, .inviteRow input, .financeBox input, .sc-trade input, .chatInputRow input{font-size:16px;}
   .sc-trade input{width:48px;}
   .financeBox input{width:88px;}
   .miniBtn, .actionBtn{min-height:36px;}
@@ -511,6 +530,7 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
         <button class="tabBtn" data-tab="finance">금융센터</button>
         <button class="tabBtn" data-tab="rank">순위</button>
         <button class="tabBtn" data-tab="log">중계</button>
+        <button class="tabBtn" data-tab="chat">채팅</button>
       </div>
 
       <div id="playerCardsWrap"></div>
@@ -551,6 +571,14 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
 
       <div class="tabPane" id="pane-log">
         <ul id="logList"></ul>
+      </div>
+
+      <div class="tabPane" id="pane-chat">
+        <div id="chatList" class="chatList"></div>
+        <div class="chatInputRow">
+          <input type="text" id="chatInput" placeholder="메시지 입력..." maxlength="200">
+          <button class="actionBtn gold" id="chatSendBtn">전송</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1116,6 +1144,62 @@ function handlePrivateMessage(msg){
   else if(msg.modal.kind==='warning'){ showWarningModal(msg.modal.payload); }
 }
 
+/* ============ CHAT ============ */
+let chatHistory = [];
+let chatUnread = 0;
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function sendChatMessage(text){
+  text = (text||'').trim().slice(0,200);
+  if(!text || !G || myPlayerIndex<0) return;
+  const me = G.players[myPlayerIndex];
+  if(NET.role==='host'){
+    broadcastChat({name:me.name, color:me.color, text});
+  } else if(NET.hostConn){
+    try{ NET.hostConn.send({type:'chat', text}); }catch(e){}
+  }
+}
+function broadcastChat(msg){
+  Object.values(NET.guestConns).forEach(c=>{ try{ c.send({type:'chat', name:msg.name, color:msg.color, text:msg.text}); }catch(e){} });
+  receiveChat(msg);
+}
+function receiveChat(msg){
+  chatHistory.push(msg);
+  if(chatHistory.length>200) chatHistory.shift();
+  const me = (G && myPlayerIndex>=0)? G.players[myPlayerIndex] : null;
+  if(!(me && msg.name===me.name && msg.color===me.color)) bumpChatUnread();
+  renderChat();
+}
+function bumpChatUnread(){
+  const btn = document.querySelector('.tabBtn[data-tab="chat"]');
+  if(btn && btn.classList.contains('active')) return;
+  chatUnread++;
+  updateChatBadge();
+}
+function updateChatBadge(){
+  const btn = document.querySelector('.tabBtn[data-tab="chat"]');
+  if(!btn) return;
+  const existing = btn.querySelector('.badge');
+  if(existing) existing.remove();
+  if(chatUnread>0){
+    const badge = document.createElement('span');
+    badge.className='badge';
+    badge.textContent = chatUnread>9? '9+' : String(chatUnread);
+    btn.appendChild(badge);
+  }
+}
+function renderChat(){
+  const list = document.getElementById('chatList');
+  if(!list) return;
+  const me = (G && myPlayerIndex>=0)? G.players[myPlayerIndex] : null;
+  list.innerHTML = chatHistory.map(m=>{
+    const mine = me && m.name===me.name && m.color===me.color;
+    return '<div class="chatMsg'+(mine?' mine':'')+'"><b style="color:'+m.color+'">'+escapeHtml(m.name)+'</b>: '+escapeHtml(m.text)+'</div>';
+  }).join('') || '<div class="helpText" style="margin-top:0;">아직 채팅이 없습니다. 첫 메시지를 보내보세요!</div>';
+  list.scrollTop = list.scrollHeight;
+}
+
 function createRoom(name){
   NET.role='host';
   setNetStatus('연결 서버에 접속 중…');
@@ -1153,6 +1237,11 @@ function handleHostMessage(conn, data){
     const idx = G.players.findIndex(pl=>pl.peerId===conn.peer);
     if(idx<0) return;
     processHostAction(idx, data.action);
+  } else if(data.type==='chat'){
+    if(!G) return;
+    const pl = G.players.find(pl=>pl.peerId===conn.peer);
+    if(!pl) return;
+    broadcastChat({name:pl.name, color:pl.color, text:(data.text||'').slice(0,200)});
   }
 }
 function broadcastLobby(){
@@ -1199,6 +1288,8 @@ function handleGuestMessage(data){
     handlePrivateMessage(data);
   } else if(data.type==='error'){
     setNetStatus(data.message);
+  } else if(data.type==='chat'){
+    receiveChat({name:data.name, color:data.color, text:data.text});
   }
 }
 function requestAction(action){
@@ -1717,6 +1808,7 @@ function renderAll(){
   renderHoldingsTable();
   renderShortsTable();
   renderNewsTab();
+  renderChat();
   renderLog();
   renderTicker();
   renderCenter();
@@ -1910,6 +2002,15 @@ function boot(){
     setTimeout(()=>btn.textContent=old, 1500);
   });
   document.getElementById('startGameBtn').addEventListener('click', hostStartGame);
+  document.getElementById('chatSendBtn').addEventListener('click', ()=>{
+    const input = document.getElementById('chatInput');
+    sendChatMessage(input.value);
+    input.value='';
+    input.focus();
+  });
+  document.getElementById('chatInput').addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ e.preventDefault(); document.getElementById('chatSendBtn').click(); }
+  });
 }
 
 document.querySelectorAll('.tabBtn').forEach(btn=>{
@@ -1918,6 +2019,7 @@ document.querySelectorAll('.tabBtn').forEach(btn=>{
     document.querySelectorAll('.tabPane').forEach(p=>p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('pane-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='chat'){ chatUnread=0; updateChatBadge(); }
   });
 });
 
