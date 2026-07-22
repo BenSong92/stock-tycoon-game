@@ -655,7 +655,7 @@ function newGame(names, turnsPerPlayer){
   const players = names.map((name,i)=>({
     name, color:PLAYER_COLORS[i], cash:START_CASH, loan:0, pos:0, lap:0,
     holdings:{}, avgCost:{}, shorts:{}, shortAvg:{}, netWorthHistory:[{turn:0, value:START_CASH}],
-    insiderUsedThisTurn:false, peerId:null,
+    insiderUsedThisTurn:false, peerId:null, marginWarned:false,
   }));
   G = {
     companies, players,
@@ -784,8 +784,42 @@ function beginTurn(){
   applyMarketDrift();
   checkMarginCalls();
   if(G.turnCount>0 && G.turnCount%5===0) chargeInterestAll();
+  warnUpcomingInterest();
+  warnMarginRisk();
   G.turnDeadline = Date.now()+TURN_SECONDS*1000;
   scheduleAutoTimeout();
+}
+
+function warnUpcomingInterest(){
+  // interest lands on turns that are multiples of 5 — warn exactly one turn ahead
+  if((G.turnCount+1)%5!==0) return;
+  G.players.forEach((pl,idx)=>{
+    if(pl.loan<=0) return;
+    const amount = Math.round(pl.loan*INTEREST_RATE);
+    logMsg(pl.name+'님, 다음 정산에 대출 이자 '+fmt(amount)+'가 부과될 예정입니다.', 'news');
+    deliverPrivate(idx, {type:'privateModal', modal:{kind:'warning', payload:{
+      title:'대출 이자 예고',
+      text:'다음 이자 정산 시 대출 잔액 '+fmt(pl.loan)+'에 대해 '+fmt(amount)+'의 이자가 부과됩니다. 미리 상환하면 이자를 줄일 수 있습니다.'
+    }}});
+  });
+}
+function warnMarginRisk(){
+  G.players.forEach((pl,idx)=>{
+    const exposure = pl.loan + shortLiability(pl);
+    const nw = netWorth(pl);
+    if(exposure<=0){ pl.marginWarned=false; return; }
+    const atRisk = nw>=0 && nw < exposure*0.2;
+    if(atRisk && !pl.marginWarned){
+      pl.marginWarned = true;
+      logMsg(pl.name+'님, 반대매매(마진콜) 위험 구간에 진입했습니다!', 'news');
+      deliverPrivate(idx, {type:'privateModal', modal:{kind:'warning', payload:{
+        title:'반대매매 경고',
+        text:'순자산('+fmt(nw)+')이 레버리지 노출('+fmt(exposure)+') 대비 위험 수준까지 줄었습니다. 이대로 시세가 더 악화되면 다음 턴 이후 보유 주식이나 공매도 포지션이 강제로 정리(반대매매)될 수 있습니다. 지금 대출을 상환하거나 포지션을 줄이는 것을 권장합니다.'
+      }}});
+    } else if(!atRisk && pl.marginWarned && nw > exposure*0.35){
+      pl.marginWarned = false;
+    }
+  });
 }
 
 function chargeInterestAll(){
@@ -1051,7 +1085,9 @@ function deliverPrivate(playerIndex, msg){
   else if(NET.guestConns[targetPeerId]){ try{ NET.guestConns[targetPeerId].send(msg); }catch(e){} }
 }
 function handlePrivateMessage(msg){
-  if(msg.type==='privateModal' && msg.modal.kind==='insider'){ showInsiderModal(msg.modal.payload); }
+  if(msg.type!=='privateModal') return;
+  if(msg.modal.kind==='insider'){ showInsiderModal(msg.modal.payload); }
+  else if(msg.modal.kind==='warning'){ showWarningModal(msg.modal.payload); }
 }
 
 function createRoom(name){
@@ -1674,6 +1710,13 @@ function showInsiderModal(r){
       '<p style="margin-top:.5rem;">이 카드는 아직 뽑히지 않았습니다 — 다음 뉴스 카드로 등장할 가능성이 높습니다.</p>'
     );
   }
+}
+function showWarningModal(payload){
+  openModal(
+    '<div class="kicker" style="color:var(--warning)">경고 · Risk Alert (나만 볼 수 있음)</div>'+
+    '<h3>'+payload.title+'</h3>'+
+    '<p>'+payload.text+'</p>'
+  );
 }
 function openModal(innerHtml){
   const existing = document.getElementById('modalOverlay');
