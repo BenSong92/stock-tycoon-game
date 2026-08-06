@@ -731,6 +731,9 @@ let lobby = []; // [{name}] — mirrors the server's lobby list
 let pendingSettings = { turnsPerPlayer: 18 };
 const SERVER_HTTP = 'https://jujak-server.skkcbk.workers.dev';
 const SERVER_WS = 'wss://jujak-server.skkcbk.workers.dev';
+// Identifies "this device/session" to the server so reconnects are recognized correctly —
+// display names can't be used for that since two different people may pick the same one.
+const CLIENT_ID = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('c'+Math.random().toString(36).slice(2)+Date.now());
 const NET = { ws:null, roomId:null, myName:null, youAreHost:false };
 
 function fmt(n){ return Math.round(n).toLocaleString('ko-KR')+'원'; }
@@ -771,7 +774,7 @@ function connectWs(roomId, name, opts){
 function doConnect(){
   setNetStatus(NET.reconnectAttempts>0 ? '재연결 시도 중… ('+NET.reconnectAttempts+')' : '연결 서버에 접속 중…');
   const opts = NET.opts;
-  let url = SERVER_WS+'/room/'+NET.roomId+'/ws?name='+encodeURIComponent(NET.myName);
+  let url = SERVER_WS+'/room/'+NET.roomId+'/ws?name='+encodeURIComponent(NET.myName)+'&cid='+encodeURIComponent(CLIENT_ID);
   if(opts.isNewRoom) url += '&roomId='+encodeURIComponent(NET.roomId)+'&public='+(opts.public?'1':'0');
   const ws = new WebSocket(url);
   NET.ws = ws;
