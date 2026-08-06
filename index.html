@@ -516,6 +516,8 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
       </div>
       <div class="helpText">방을 만들면 초대 링크가 생성됩니다. 그 링크를 최대 3명의 친구에게 보내면, 각자 자기 스마트폰이나 PC로 접속해서 함께 실시간으로 플레이할 수 있습니다.</div>
       <button class="bigBtn" id="createBtn">방 만들기</button>
+      <button class="bigBtn" id="quickMatchBtn" style="margin-top:.6rem;background:linear-gradient(180deg,var(--panel-3),var(--panel-2));color:var(--ink);border-color:var(--border-strong);">🎲 무작위로 매칭하기</button>
+      <div class="helpText" style="margin-top:.5rem;">무작위 매칭은 모르는 사람과 한 방에서 플레이해요. 닉네임과 채팅이 상대방에게 그대로 보이니 개인정보는 적지 말아 주세요. 불편한 상대는 채팅에서 신고할 수 있어요.</div>
     </div>
 
     <div class="card hidden" id="joinCard">
@@ -616,7 +618,6 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 (function(){
 "use strict";
@@ -720,59 +721,21 @@ const INTEREST_RATE = 0.05;
 const TRADE_FEE = 0.005;
 const LEVERAGE_MULT = 2;
 const TURN_SECONDS = 90;
-let hostTimerHandle = null;
 let timerTickHandle = null;
 
 /* ============ STATE ============ */
 let G = null;
 let myPlayerIndex = -1;
 let myInsiderHistory = []; // local-only: private insider tips this browser has received
-let lobby = []; // [{peerId,name}] — authoritative on host
+let lobby = []; // [{name}] — mirrors the server's lobby list
 let pendingSettings = { turnsPerPlayer: 18 };
-const NET = { role:null, peer:null, hostConn:null, guestConns:{}, myPeerId:null };
+const SERVER_HTTP = 'https://jujak-server.skkcbk.workers.dev';
+const SERVER_WS = 'wss://jujak-server.skkcbk.workers.dev';
+const NET = { ws:null, roomId:null, myName:null, youAreHost:false };
 
 function fmt(n){ return Math.round(n).toLocaleString('ko-KR')+'원'; }
 function pctStr(n){ return (n>=0?'+':'')+n.toFixed(1)+'%'; }
 function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
-function shuffle(arr){
-  const a=arr.slice();
-  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
-  return a;
-}
-
-function newGame(names, turnsPerPlayer){
-  const companies = COMPANIES.map(c=>({...c, price:c.base, history:[c.base]}));
-  const players = names.map((name,i)=>({
-    name, color:PLAYER_COLORS[i], cash:START_CASH, loan:0, pos:0, lap:0,
-    holdings:{}, avgCost:{}, shorts:{}, shortAvg:{}, netWorthHistory:[{turn:0, value:START_CASH}],
-    insiderUsedThisTurn:false, peerId:null, marginWarned:false,
-  }));
-  G = {
-    companies, players,
-    tiles: TILE_DEFS,
-    drawPile: shuffle(NEWS_POOL),
-    discardPile: [],
-    currentIndex:0,
-    turnCount:0,
-    maxTurns: names.length*turnsPerPlayer,
-    hasRolled:false,
-    animating:false,
-    insiderAvailableThisTurn:false,
-    log:[],
-    newsHistory:[],
-    ended:false,
-    turnsSinceNews:0,
-    nextForcedNewsIn: 5+Math.floor(Math.random()*3),
-    lastInterestTurn:-1,
-    turnDeadline:0,
-  };
-  logMsg('시장이 개장했습니다. 행운을 빕니다.', 'gold');
-}
-
-function logMsg(text, cls){
-  G.log.push({text, cls: cls||''});
-  if(G.log.length>200) G.log.shift();
-}
 
 function company(id){ return G.companies.find(c=>c.id===id); }
 function currentPlayer(){ return G.players[G.currentIndex]; }
@@ -788,396 +751,91 @@ function shortLiability(p){
   return v;
 }
 function netWorth(p){ return p.cash + portfolioValue(p) - p.loan - shortLiability(p); }
+function maxLoanFor(p){ return Math.max(0, Math.round(LEVERAGE_MULT*netWorth(p) - p.loan)); }
+function maxShortFor(p){ return Math.max(0, Math.round(LEVERAGE_MULT*netWorth(p) - shortLiability(p))); }
 
-/* ============ MARKET ============ */
-function applyMarketDrift(){
-  G.companies.forEach(c=>{
-    const drift = (Math.random()*6-3)/100;
-    c.price = Math.max(500, Math.round(c.price*(1+drift)));
-    pushHistory(c);
+/* ============ NETWORK (WebSocket, server-authoritative) ============ */
+function randomRoomCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no O/0, I/1
+  let s=''; for(let i=0;i<6;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+function connectWs(roomId, name, opts){
+  opts = opts || {};
+  NET.roomId = roomId;
+  NET.myName = name;
+  setNetStatus('연결 서버에 접속 중…');
+  let url = SERVER_WS+'/room/'+roomId+'/ws?name='+encodeURIComponent(name);
+  if(opts.isNewRoom) url += '&roomId='+encodeURIComponent(roomId)+'&public='+(opts.public?'1':'0');
+  const ws = new WebSocket(url);
+  NET.ws = ws;
+  ws.addEventListener('open', ()=> setNetStatus(''));
+  ws.addEventListener('message', e=>{
+    let data; try{ data = JSON.parse(e.data); }catch(err){ return; }
+    handleServerMessage(data);
   });
-}
-function pushHistory(c){
-  c.history.push(c.price);
-  if(c.history.length>36) c.history.shift();
-}
-
-function drawCard(){
-  if(G.drawPile.length===0){ G.drawPile=shuffle(G.discardPile); G.discardPile=[]; }
-  const card = G.drawPile.pop();
-  G.discardPile.push(card);
-  return card;
-}
-function peekCard(){
-  if(G.drawPile.length===0){ G.drawPile=shuffle(G.discardPile); G.discardPile=[]; }
-  return G.drawPile[G.drawPile.length-1];
-}
-function applyCard(card){
-  const jitter = ()=> (Math.random()*4-2);
-  let result;
-  if(card.c){
-    const c = company(card.c);
-    const actual = card.pct + jitter();
-    c.price = Math.max(500, Math.round(c.price*(1+actual/100)));
-    pushHistory(c);
-    result = {headline:card.h, detail:c.name+' 주가 '+pctStr(actual), pct:actual, target:c.name};
-  } else {
-    G.companies.forEach(c=>{
-      const actual = card.pct + jitter();
-      c.price = Math.max(500, Math.round(c.price*(1+actual/100)));
-      pushHistory(c);
-    });
-    result = {headline:card.h, detail:'시장 전체 평균 '+pctStr(card.pct), pct:card.pct, target:'전체 시장'};
-  }
-  G.newsHistory.push({turn:G.turnCount+1, headline:result.headline, detail:result.detail, pct:result.pct, target:result.target});
-  if(G.newsHistory.length>60) G.newsHistory.shift();
-  return result;
-}
-
-/* ============ MARGIN CALL ============ */
-function checkMarginCalls(){
-  G.players.forEach(p=>{
-    if(p.loan<=0 && shortLiability(p)<=0) return;
-    if(netWorth(p)>=0) return;
-    logMsg(p.name+' 마진콜 발생! 포지션을 강제로 정리합니다.', 'news');
-    const held = Object.keys(p.holdings).filter(id=>(p.holdings[id]||0)>0)
-      .sort((a,b)=> (p.holdings[b]*company(b).price)-(p.holdings[a]*company(a).price));
-    for(const id of held){
-      if(netWorth(p)>=0) break;
-      const qty = p.holdings[id];
-      const proceeds = qty*company(id).price*0.9;
-      p.cash += proceeds;
-      p.holdings[id]=0; p.avgCost[id]=0;
-      logMsg(p.name+'의 '+company(id).name+' '+qty+'주가 강제 청산되었습니다 (10% 손실).', 'news');
-    }
-    if(netWorth(p)<0){
-      const shortIds = Object.keys(p.shorts).filter(id=>(p.shorts[id]||0)>0)
-        .sort((a,b)=> ((company(b).price-(p.shortAvg[b]||0))*p.shorts[b]) - ((company(a).price-(p.shortAvg[a]||0))*p.shorts[a]));
-      for(const id of shortIds){
-        if(netWorth(p)>=0) break;
-        const qty = p.shorts[id];
-        const cost = qty*company(id).price*1.1;
-        p.cash -= cost;
-        p.shorts[id]=0; p.shortAvg[id]=0;
-        logMsg(p.name+'의 '+company(id).name+' 공매도 '+qty+'주가 강제 상환되었습니다 (10% 추가 손실).', 'news');
-      }
-    }
-    if(p.loan>0 && p.loan>p.cash){
-      const payoff = Math.min(p.loan,Math.max(p.cash,0));
-      p.loan -= payoff; p.cash -= payoff;
-    }
+  ws.addEventListener('close', ()=>{
+    if(!G) setNetStatus('서버와 연결이 끊어졌습니다. 새로고침 후 다시 시도해 주세요.');
+    else setNetStatus('서버와 연결이 끊어졌습니다.');
   });
+  ws.addEventListener('error', ()=> setNetStatus('연결 오류가 발생했습니다. (네트워크 상태를 확인해 주세요)'));
 }
-
-/* ============ HOST-ONLY GAME LOGIC ============ */
-function beginTurn(){
-  const p = currentPlayer();
-  p.insiderUsedThisTurn=false;
-  G.hasRolled=false;
-  G.insiderAvailableThisTurn=false;
-  G.turnsSinceNews++;
-  applyMarketDrift();
-  checkMarginCalls();
-  if(G.turnCount>0 && G.turnCount%5===0) chargeInterestAll();
-  warnUpcomingInterest();
-  warnMarginRisk();
-  G.turnDeadline = Date.now()+TURN_SECONDS*1000;
-  scheduleAutoTimeout();
+function createRoom(name){
+  const roomId = randomRoomCode();
+  connectWs(roomId, name, {isNewRoom:true, public:false});
+  document.getElementById('inviteLink').value = location.origin+location.pathname+'?room='+roomId;
+  document.getElementById('inviteBox').classList.remove('hidden');
 }
-
-function warnUpcomingInterest(){
-  // interest lands on turns that are multiples of 5 — warn exactly one turn ahead
-  if((G.turnCount+1)%5!==0) return;
-  G.players.forEach((pl,idx)=>{
-    if(pl.loan<=0) return;
-    const amount = Math.round(pl.loan*INTEREST_RATE);
-    logMsg(pl.name+'님, 다음 정산에 대출 이자 '+fmt(amount)+'가 부과될 예정입니다.', 'news');
-    deliverPrivate(idx, {type:'privateModal', modal:{kind:'warning', payload:{
-      title:'대출 이자 예고',
-      text:'다음 이자 정산 시 대출 잔액 '+fmt(pl.loan)+'에 대해 '+fmt(amount)+'의 이자가 부과됩니다. 미리 상환하면 이자를 줄일 수 있습니다.'
-    }}});
-  });
+function joinRoom(roomId, name){
+  connectWs(roomId, name, {isNewRoom:false});
 }
-function warnMarginRisk(){
-  G.players.forEach((pl,idx)=>{
-    const exposure = pl.loan + shortLiability(pl);
-    const nw = netWorth(pl);
-    if(exposure<=0){ pl.marginWarned=false; return; }
-    const atRisk = nw>=0 && nw < exposure*0.2;
-    if(atRisk && !pl.marginWarned){
-      pl.marginWarned = true;
-      logMsg(pl.name+'님, 반대매매(마진콜) 위험 구간에 진입했습니다!', 'news');
-      deliverPrivate(idx, {type:'privateModal', modal:{kind:'warning', payload:{
-        title:'반대매매 경고',
-        text:'순자산('+fmt(nw)+')이 레버리지 노출('+fmt(exposure)+') 대비 위험 수준까지 줄었습니다. 이대로 시세가 더 악화되면 다음 턴 이후 보유 주식이나 공매도 포지션이 강제로 정리(반대매매)될 수 있습니다. 지금 대출을 상환하거나 포지션을 줄이는 것을 권장합니다.'
-      }}});
-    } else if(!atRisk && pl.marginWarned && nw > exposure*0.35){
-      pl.marginWarned = false;
-    }
-  });
-}
-
-function chargeInterestAll(){
-  if(G.lastInterestTurn===G.turnCount) return;
-  G.lastInterestTurn = G.turnCount;
-  G.players.forEach(pl=>{
-    if(pl.loan>0){
-      const interest = Math.round(pl.loan*INTEREST_RATE);
-      pl.loan += interest;
-      logMsg(pl.name+'님의 대출 이자 '+fmt(interest)+'가 부과되었습니다 (5턴마다 정산, 연 5%).', 'news');
-    }
-  });
-}
-
-function scheduleAutoTimeout(){
-  if(NET.role!=='host') return;
-  if(hostTimerHandle) clearTimeout(hostTimerHandle);
-  hostTimerHandle = setTimeout(hostForceTimeout, TURN_SECONDS*1000+150);
-}
-function hostForceTimeout(){
-  if(!G || G.ended) return;
-  if(!G.hasRolled){
-    const rollMeta = execRoll();
-    hostBroadcastAndRender(rollMeta);
-    const delay = rollMeta.steps*130+500;
-    hostTimerHandle = setTimeout(()=>{
-      const endMeta = execEndTurn();
-      hostBroadcastAndRender(endMeta);
-    }, delay);
-  } else {
-    const endMeta = execEndTurn();
-    hostBroadcastAndRender(endMeta);
+async function quickMatch(name){
+  setNetStatus('빈 방을 찾는 중…');
+  try{
+    const res = await fetch(SERVER_HTTP+'/api/quickmatch', {method:'POST'});
+    if(!res.ok) throw new Error('bad status');
+    const data = await res.json();
+    document.getElementById('createCard').classList.add('hidden');
+    document.getElementById('lobbyCard').classList.remove('hidden');
+    connectWs(data.roomId, name, {isNewRoom:true, public:true});
+    document.getElementById('inviteLink').value = location.origin+location.pathname+'?room='+data.roomId;
+    document.getElementById('inviteBox').classList.remove('hidden');
+  }catch(e){
+    setNetStatus('매칭 서버에 연결할 수 없습니다. 다시 시도해 주세요.');
   }
 }
-
-function passStart(p){
-  p.lap++;
-  p.cash += SALARY;
-  logMsg(p.name+'님, 월급날! +'+fmt(SALARY), 'good');
-}
-
-function resolveTile(p){
-  const tile = G.tiles[p.pos];
-  if(tile.type==='news'){
-    const card = drawCard();
-    const result = applyCard(card);
-    logMsg('[속보] '+result.headline+' → '+result.detail, 'news');
-    return {kind:'news', result};
-  } else if(tile.type==='insider'){
-    G.insiderAvailableThisTurn=true;
-    logMsg(p.name+'님이 정보원 타일에 도착했습니다. 이번 턴, 특종 정보를 열람할 수 있습니다.', 'gold');
-    return {kind:'insider-tile'};
-  } else if(tile.type==='bank'){
-    p.cash += 3000;
-    logMsg(p.name+'님이 은행에 들러 이자 캐시백 '+fmt(3000)+'을 받았습니다.', 'good');
-    return {kind:'bank'};
-  } else if(tile.type==='company'){
-    const c = company(tile.c);
-    const qty = p.holdings[tile.c]||0;
-    if(qty>0){
-      const div = qty*200;
-      p.cash += div;
-      logMsg(p.name+'님이 '+c.name+' 배당금 '+fmt(div)+'를 받았습니다.', 'good');
-    } else {
-      logMsg(p.name+'님이 '+c.name+' 타일에 도착했습니다.', '');
-    }
-    return {kind:'company', id:tile.c};
-  } else if(tile.type==='payday'){
-    logMsg(p.name+'님이 월급날 칸에 정확히 도착했습니다!', 'good');
-    return {kind:'payday'};
+function handleServerMessage(data){
+  if(data.type==='lobby'){
+    lobby = data.lobby;
+    NET.youAreHost = !!data.youAreHost;
+    if(data.pendingSettings) pendingSettings = data.pendingSettings;
+    setNetStatus('');
+    renderLobby();
+    renderLengthChoice();
+  } else if(data.type==='settings'){
+    pendingSettings = data.pendingSettings;
+    renderLengthChoice();
+  } else if(data.type==='start'){
+    G = data.state;
+    myPlayerIndex = data.yourIndex;
+    enterGameScreen();
+  } else if(data.type==='state'){
+    G = data.state;
+    playMeta(data.meta);
+  } else if(data.type==='privateModal'){
+    handlePrivateMessage(data);
+  } else if(data.type==='error'){
+    setNetStatus(data.message);
+  } else if(data.type==='chat'){
+    receiveChat({name:data.name, color:data.color, text:data.text});
   }
 }
-
-function execRoll(){
-  const p = currentPlayer();
-  const playerIndex = G.currentIndex;
-  const d1=1+Math.floor(Math.random()*6), d2=1+Math.floor(Math.random()*6);
-  const steps=d1+d2;
-  const from=p.pos;
-  G.hasRolled=true;
-  for(let s=0;s<steps;s++){ p.pos=(p.pos+1)%20; if(p.pos===0) passStart(p); }
-  let tileInfo = resolveTile(p);
-  if(tileInfo && tileInfo.kind==='news'){
-    G.turnsSinceNews = 0;
-    G.nextForcedNewsIn = 5+Math.floor(Math.random()*3);
-  } else if(G.turnsSinceNews >= G.nextForcedNewsIn){
-    const card = drawCard();
-    const result = applyCard(card);
-    logMsg('[속보] '+result.headline+' → '+result.detail, 'news');
-    G.turnsSinceNews = 0;
-    G.nextForcedNewsIn = 5+Math.floor(Math.random()*3);
-    tileInfo = tileInfo? Object.assign({}, tileInfo, {forcedNews:result}) : {kind:'forced-news-only', forcedNews:result};
-  }
-  return {kind:'roll', playerIndex, from, steps, dice:[d1,d2], tileInfo};
+function hostStartGame(){
+  if(lobby.length<2 || !NET.ws) return;
+  NET.ws.send(JSON.stringify({type:'startGame'}));
 }
-
-function execBuy(playerIndex, companyId, qty){
-  const p = G.players[playerIndex];
-  qty = parseInt(qty)||0;
-  if(qty<=0) return;
-  const c = company(companyId);
-  if(!c) return;
-  const cost = c.price*qty*(1+TRADE_FEE);
-  if(cost>p.cash){ logMsg('현금이 부족합니다.', 'news'); return; }
-  const prevQty = p.holdings[companyId]||0;
-  const prevAvg = p.avgCost[companyId]||0;
-  p.cash -= cost;
-  const newQty = prevQty+qty;
-  p.avgCost[companyId] = Math.round((prevAvg*prevQty + c.price*qty)/newQty);
-  p.holdings[companyId] = newQty;
-  logMsg(p.name+'님이 '+c.name+' '+qty+'주 매수 ('+fmt(cost)+', 평단 '+fmt(p.avgCost[companyId])+')', '');
-  applyTradeImpact(c, qty, 1);
-}
-function execSell(playerIndex, companyId, qty){
-  const p = G.players[playerIndex];
-  qty = parseInt(qty)||0;
-  const have = p.holdings[companyId]||0;
-  if(qty<=0||qty>have){ logMsg('보유 수량보다 많이 팔 수 없습니다.', 'news'); return; }
-  const c = company(companyId);
-  const avg = p.avgCost[companyId]||c.price;
-  const proceeds = c.price*qty*(1-TRADE_FEE);
-  const plPct = avg>0? ((c.price-avg)/avg)*100 : 0;
-  p.cash += proceeds;
-  p.holdings[companyId] -= qty;
-  if(p.holdings[companyId]<=0){ p.holdings[companyId]=0; p.avgCost[companyId]=0; }
-  logMsg(p.name+'님이 '+c.name+' '+qty+'주 매도 ('+fmt(proceeds)+', 손익 '+pctStr(plPct)+')', plPct>=0?'good':'news');
-  applyTradeImpact(c, qty, -1);
-}
-function applyTradeImpact(c, qty, direction){
-  // buying pushes the price up, selling pushes it down, scaling directly with order size
-  // (qty*0.3%/share), capped per trade so one huge order can't single-handedly crash/rocket a stock
-  const impactPct = Math.min(10, qty*0.3) * direction;
-  c.price = Math.max(500, Math.round(c.price*(1+impactPct/100)));
-  pushHistory(c);
-}
-function maxShortFor(p){
-  // same spirit as maxLoanFor: cap total open short exposure at LEVERAGE_MULT × net worth
-  return Math.max(0, Math.round(LEVERAGE_MULT*netWorth(p) - shortLiability(p)));
-}
-function execShort(playerIndex, companyId, qty){
-  const p = G.players[playerIndex];
-  qty = parseInt(qty)||0;
-  if(qty<=0) return;
-  const c = company(companyId);
-  if(!c) return;
-  const posValue = qty*c.price;
-  if(posValue>maxShortFor(p)){ logMsg('공매도 한도(레버리지 '+LEVERAGE_MULT+'배)를 초과했습니다.', 'news'); return; }
-  const proceeds = c.price*qty*(1-TRADE_FEE);
-  const prevQty = p.shorts[companyId]||0;
-  const prevAvg = p.shortAvg[companyId]||0;
-  const newQty = prevQty+qty;
-  p.shortAvg[companyId] = Math.round((prevAvg*prevQty + c.price*qty)/newQty);
-  p.shorts[companyId] = newQty;
-  p.cash += proceeds;
-  logMsg(p.name+'님이 '+c.name+' '+qty+'주 공매도 진입 (수령 '+fmt(proceeds)+', 평단 '+fmt(p.shortAvg[companyId])+')', 'news');
-  applyTradeImpact(c, qty, -1);
-}
-function execCoverShort(playerIndex, companyId, qty){
-  const p = G.players[playerIndex];
-  qty = parseInt(qty)||0;
-  const have = p.shorts[companyId]||0;
-  if(qty<=0||qty>have){ logMsg('공매도 보유량보다 많이 상환할 수 없습니다.', 'news'); return; }
-  const c = company(companyId);
-  const cost = c.price*qty*(1+TRADE_FEE);
-  if(cost>p.cash){ logMsg('공매도 상환 자금이 부족합니다.', 'news'); return; }
-  const avg = p.shortAvg[companyId]||c.price;
-  const plPct = avg>0? ((avg-c.price)/avg)*100 : 0;
-  p.cash -= cost;
-  p.shorts[companyId] -= qty;
-  if(p.shorts[companyId]<=0){ p.shorts[companyId]=0; p.shortAvg[companyId]=0; }
-  logMsg(p.name+'님이 '+c.name+' 공매도 '+qty+'주 상환 ('+fmt(cost)+', 손익 '+pctStr(plPct)+')', plPct>=0?'good':'news');
-  applyTradeImpact(c, qty, 1);
-}
-function execBorrow(playerIndex, amount){
-  const p = G.players[playerIndex];
-  amount = parseInt(amount)||0;
-  if(amount<=0) return;
-  const room = maxLoanFor(p);
-  const amt = Math.min(amount, room);
-  if(amt<=0){ logMsg('레버리지 한도를 초과했습니다.', 'news'); return; }
-  p.loan += amt; p.cash += amt;
-  logMsg(p.name+'님이 '+fmt(amt)+' 대출(레버리지)을 실행했습니다.', 'gold');
-}
-function execRepay(playerIndex, amount){
-  const p = G.players[playerIndex];
-  amount = parseInt(amount)||0;
-  if(amount<=0) return;
-  const amt = Math.min(amount, p.loan, p.cash);
-  if(amt<=0) return;
-  p.loan -= amt; p.cash -= amt;
-  logMsg(p.name+'님이 대출 '+fmt(amt)+'을 상환했습니다.', 'good');
-}
-function maxLoanFor(p){
-  // Cap total debt at LEVERAGE_MULT × net worth. Net worth (cash+portfolio-loan) is
-  // unchanged by a borrow itself (cash and loan rise together), so this cap actually
-  // shrinks as you borrow — unlike a cash-based formula, which let repeated borrows
-  // inflate their own collateral and allowed unlimited borrowing.
-  return Math.max(0, Math.round(LEVERAGE_MULT*netWorth(p) - p.loan));
-}
-
-function execInsider(playerIndex){
-  const p = G.players[playerIndex];
-  if(!G.insiderAvailableThisTurn||p.insiderUsedThisTurn) return;
-  const cost = Math.max(3000, Math.round(p.cash*0.08/1000)*1000);
-  if(p.cash<cost) return;
-  p.cash -= cost;
-  p.insiderUsedThisTurn = true;
-  const caught = Math.random()<0.15;
-  let payload;
-  if(caught){
-    const fine = cost*2;
-    p.cash -= fine;
-    logMsg(p.name+'님, 정보 취재 중 금융감독원에 적발! 벌금 '+fmt(fine), 'news');
-    payload = {caught:true, cost, fine};
-  } else {
-    const card = peekCard();
-    const target = card.c? company(card.c).name : '전체 시장';
-    logMsg(p.name+'님이 '+fmt(cost)+'을 내고 특종 정보를 입수했습니다.', 'gold');
-    payload = {caught:false, cost, headline:card.h, target, pct:card.pct};
-  }
-  deliverPrivate(playerIndex, {type:'privateModal', modal:{kind:'insider', payload}});
-}
-
-function execEndTurn(){
-  const p = currentPlayer();
-  p.netWorthHistory.push({turn:G.turnCount+1, value:netWorth(p)});
-  G.turnCount++;
-  if(G.turnCount>=G.maxTurns){
-    G.ended = true;
-    if(hostTimerHandle) clearTimeout(hostTimerHandle);
-    return {kind:'gameEnd'};
-  }
-  G.currentIndex = (G.currentIndex+1)%G.players.length;
-  beginTurn();
-  return null;
-}
-
-/* ============ NETWORK: HOST SIDE ============ */
-function processHostAction(playerIndex, action){
-  if(!G || playerIndex!==G.currentIndex) return;
-  let meta=null;
-  switch(action.type){
-    case 'roll': meta = execRoll(); break;
-    case 'buy': execBuy(playerIndex, action.companyId, action.qty); break;
-    case 'sell': execSell(playerIndex, action.companyId, action.qty); break;
-    case 'short': execShort(playerIndex, action.companyId, action.qty); break;
-    case 'coverShort': execCoverShort(playerIndex, action.companyId, action.qty); break;
-    case 'borrow': execBorrow(playerIndex, action.amount); break;
-    case 'repay': execRepay(playerIndex, action.amount); break;
-    case 'insider': execInsider(playerIndex); break;
-    case 'endTurn': meta = execEndTurn(); break;
-  }
-  hostBroadcastAndRender(meta);
-}
-function hostBroadcastAndRender(meta){
-  const msg = {type:'state', state:G, meta};
-  Object.values(NET.guestConns).forEach(c=>{ try{ c.send(msg); }catch(e){} });
-  playMeta(meta);
-}
-function deliverPrivate(playerIndex, msg){
-  const targetPeerId = G.players[playerIndex].peerId;
-  if(targetPeerId===NET.myPeerId){ handlePrivateMessage(msg); }
-  else if(NET.guestConns[targetPeerId]){ try{ NET.guestConns[targetPeerId].send(msg); }catch(e){} }
+function requestAction(action){
+  if(NET.ws && NET.ws.readyState===WebSocket.OPEN) NET.ws.send(JSON.stringify({type:'action', action}));
 }
 function handlePrivateMessage(msg){
   if(msg.type!=='privateModal') return;
@@ -1188,22 +846,15 @@ function handlePrivateMessage(msg){
 /* ============ CHAT ============ */
 let chatHistory = [];
 let chatUnread = 0;
+let mutedNames = [];
+try{ mutedNames = JSON.parse(localStorage.getItem('jujak_muted')||'[]'); }catch(e){ mutedNames=[]; }
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
 function sendChatMessage(text){
   text = (text||'').trim().slice(0,200);
-  if(!text || !G || myPlayerIndex<0) return;
-  const me = G.players[myPlayerIndex];
-  if(NET.role==='host'){
-    broadcastChat({name:me.name, color:me.color, text});
-  } else if(NET.hostConn){
-    try{ NET.hostConn.send({type:'chat', text}); }catch(e){}
-  }
-}
-function broadcastChat(msg){
-  Object.values(NET.guestConns).forEach(c=>{ try{ c.send({type:'chat', name:msg.name, color:msg.color, text:msg.text}); }catch(e){} });
-  receiveChat(msg);
+  if(!text || !NET.ws) return;
+  try{ NET.ws.send(JSON.stringify({type:'chat', text})); }catch(e){}
 }
 function receiveChat(msg){
   chatHistory.push(msg);
@@ -1211,6 +862,23 @@ function receiveChat(msg){
   const me = (G && myPlayerIndex>=0)? G.players[myPlayerIndex] : null;
   if(!(me && msg.name===me.name && msg.color===me.color)) bumpChatUnread();
   renderChat();
+}
+function muteName(name){
+  if(mutedNames.includes(name)) return;
+  mutedNames.push(name);
+  try{ localStorage.setItem('jujak_muted', JSON.stringify(mutedNames)); }catch(e){}
+  renderChat();
+}
+function unmuteName(name){
+  mutedNames = mutedNames.filter(n=>n!==name);
+  try{ localStorage.setItem('jujak_muted', JSON.stringify(mutedNames)); }catch(e){}
+  renderChat();
+}
+function reportName(name){
+  if(NET.ws) try{ NET.ws.send(JSON.stringify({type:'report', targetName:name, reason:'user_reported'})); }catch(e){}
+  muteName(name);
+  setNetStatus('신고가 접수되었고, 이 사람을 자동으로 차단했습니다.');
+  setTimeout(()=>{ if(!G) setNetStatus(''); }, 2500);
 }
 function bumpChatUnread(){
   const btn = document.querySelector('.tabBtn[data-tab="chat"]');
@@ -1236,106 +904,20 @@ function renderChat(){
   const me = (G && myPlayerIndex>=0)? G.players[myPlayerIndex] : null;
   list.innerHTML = chatHistory.map(m=>{
     const mine = me && m.name===me.name && m.color===me.color;
-    return '<div class="chatMsg'+(mine?' mine':'')+'"><b style="color:'+m.color+'">'+escapeHtml(m.name)+'</b>: '+escapeHtml(m.text)+'</div>';
+    if(mutedNames.includes(m.name) && !mine){
+      return '<div class="chatMsg" style="opacity:.5;">'+
+        '<b style="color:'+m.color+'">'+escapeHtml(m.name)+'</b>: <i>차단한 사용자의 메시지입니다</i> '+
+        '<span class="chatAction" data-unmute="'+escapeHtml(m.name)+'" style="cursor:pointer;text-decoration:underline;">차단 해제</span></div>';
+    }
+    const actions = mine ? '' :
+      ' <span class="chatAction" data-report="'+escapeHtml(m.name)+'" style="cursor:pointer;text-decoration:underline;opacity:.6;font-size:.7rem;">신고</span>'+
+      ' <span class="chatAction" data-mute="'+escapeHtml(m.name)+'" style="cursor:pointer;text-decoration:underline;opacity:.6;font-size:.7rem;">차단</span>';
+    return '<div class="chatMsg'+(mine?' mine':'')+'"><b style="color:'+m.color+'">'+escapeHtml(m.name)+'</b>: '+escapeHtml(m.text)+actions+'</div>';
   }).join('') || '<div class="helpText" style="margin-top:0;">아직 채팅이 없습니다. 첫 메시지를 보내보세요!</div>';
   list.scrollTop = list.scrollHeight;
-}
-
-function createRoom(name){
-  NET.role='host';
-  setNetStatus('연결 서버에 접속 중…');
-  NET.peer = new Peer();
-  NET.peer.on('open', id=>{
-    NET.myPeerId = id;
-    lobby = [{peerId:id, name}];
-    myPlayerIndex = 0;
-    document.getElementById('inviteLink').value = location.origin+location.pathname+'?room='+id;
-    document.getElementById('inviteBox').classList.remove('hidden');
-    document.getElementById('startGameBtn').classList.remove('hidden');
-    setNetStatus('연결 완료 — 링크를 공유하고 인원을 기다리세요.');
-    renderLobby();
-  });
-  NET.peer.on('connection', conn=>{
-    conn.on('open', ()=>{});
-    conn.on('data', data=> handleHostMessage(conn, data));
-    conn.on('close', ()=>{
-      delete NET.guestConns[conn.peer];
-      lobby = lobby.filter(l=>l.peerId!==conn.peer);
-      broadcastLobby();
-    });
-    NET.guestConns[conn.peer]=conn;
-  });
-  NET.peer.on('error', err=> setNetStatus('연결 오류: '+err.type+' / '+(err.message||'상세정보 없음')+' / online='+navigator.onLine));
-}
-function handleHostMessage(conn, data){
-  if(data.type==='join'){
-    if(G){ conn.send({type:'error', message:'이미 게임이 시작되어 참가할 수 없습니다.'}); return; }
-    if(lobby.length>=4){ conn.send({type:'error', message:'인원이 가득 찼습니다 (최대 4명).'}); return; }
-    lobby.push({peerId:conn.peer, name:(data.name||'투자자').slice(0,10)});
-    broadcastLobby();
-  } else if(data.type==='action'){
-    if(!G) return;
-    const idx = G.players.findIndex(pl=>pl.peerId===conn.peer);
-    if(idx<0) return;
-    processHostAction(idx, data.action);
-  } else if(data.type==='chat'){
-    if(!G) return;
-    const pl = G.players.find(pl=>pl.peerId===conn.peer);
-    if(!pl) return;
-    broadcastChat({name:pl.name, color:pl.color, text:(data.text||'').slice(0,200)});
-  }
-}
-function broadcastLobby(){
-  const msg = {type:'lobby', lobby};
-  Object.values(NET.guestConns).forEach(c=>{ try{c.send(msg);}catch(e){} });
-  renderLobby();
-}
-function hostStartGame(){
-  if(lobby.length<2) return;
-  newGame(lobby.map(l=>l.name), pendingSettings.turnsPerPlayer);
-  G.players.forEach((p,i)=> p.peerId = lobby[i].peerId);
-  beginTurn();
-  const msg = {type:'start', state:G};
-  Object.values(NET.guestConns).forEach(c=>{ try{c.send(msg);}catch(e){} });
-  enterGameScreen();
-}
-
-/* ============ NETWORK: GUEST SIDE ============ */
-function joinRoom(roomId, name){
-  NET.role='guest';
-  setNetStatus('연결 서버에 접속 중…');
-  NET.peer = new Peer();
-  NET.peer.on('open', id=>{
-    NET.myPeerId = id;
-    const conn = NET.peer.connect(roomId, {reliable:true});
-    NET.hostConn = conn;
-    conn.on('open', ()=>{ conn.send({type:'join', name}); setNetStatus('대기실 입장 중…'); });
-    conn.on('data', data=> handleGuestMessage(data));
-    conn.on('close', ()=> setNetStatus('호스트와 연결이 끊어졌습니다. 새로고침 후 다시 시도해 주세요.'));
-    conn.on('error', err=> setNetStatus('연결 오류: '+(err.message||err.type||'상세정보 없음')));
-  });
-  NET.peer.on('error', err=> setNetStatus('연결 오류: '+err.type+' / '+(err.message||'상세정보 없음')+' / online='+navigator.onLine));
-}
-function handleGuestMessage(data){
-  if(data.type==='lobby'){ lobby=data.lobby; setNetStatus(''); renderLobby(); }
-  else if(data.type==='start'){
-    G = data.state;
-    myPlayerIndex = G.players.findIndex(p=>p.peerId===NET.myPeerId);
-    enterGameScreen();
-  } else if(data.type==='state'){
-    G = data.state;
-    playMeta(data.meta);
-  } else if(data.type==='privateModal'){
-    handlePrivateMessage(data);
-  } else if(data.type==='error'){
-    setNetStatus(data.message);
-  } else if(data.type==='chat'){
-    receiveChat({name:data.name, color:data.color, text:data.text});
-  }
-}
-function requestAction(action){
-  if(NET.role==='host'){ processHostAction(myPlayerIndex, action); }
-  else if(NET.hostConn){ try{ NET.hostConn.send({type:'action', action}); }catch(e){} }
+  list.querySelectorAll('[data-report]').forEach(el=> el.addEventListener('click', ()=> reportName(el.dataset.report)));
+  list.querySelectorAll('[data-mute]').forEach(el=> el.addEventListener('click', ()=> muteName(el.dataset.mute)));
+  list.querySelectorAll('[data-unmute]').forEach(el=> el.addEventListener('click', ()=> unmuteName(el.dataset.unmute)));
 }
 
 /* ============ UI ACTION HOOKS (turn-gated) ============ */
@@ -2008,9 +1590,15 @@ function setNetStatus(text){ document.getElementById('netStatus').textContent = 
 function renderLengthChoice(){
   const lenWrap = document.getElementById('lengthChoice');
   lenWrap.innerHTML='';
+  const editable = NET.youAreHost && !G;
   [[12,'짧게'],[18,'보통'],[24,'길게']].forEach(([v,label])=>{
     const chip = el('div','chip'+(pendingSettings.turnsPerPlayer===v?' active':''), label+' · 1인당 '+v+'턴');
-    chip.addEventListener('click', ()=>{ pendingSettings.turnsPerPlayer=v; renderLengthChoice(); });
+    if(!editable) chip.style.opacity='.55';
+    chip.addEventListener('click', ()=>{
+      if(!editable) return;
+      pendingSettings.turnsPerPlayer=v; renderLengthChoice();
+      if(NET.ws) NET.ws.send(JSON.stringify({type:'setLength', turnsPerPlayer:v}));
+    });
     lenWrap.appendChild(chip);
   });
 }
@@ -2020,12 +1608,15 @@ function renderLobby(){
   list.innerHTML = lobby.map((l,i)=>
     '<div class="lobbySlot"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:'+PLAYER_COLORS[i]+';display:inline-block;"></span>'+
     '<span>'+(PLAYER_TOKENS[i]||'')+' '+l.name+'</span>'+
-    '<span class="tag">'+(i===0?'호스트':'참가자')+(l.peerId===NET.myPeerId?' · 나':'')+'</span></div>'
+    '<span class="tag">'+(i===0?'호스트':'참가자')+(l.name===NET.myName?' · 나':'')+'</span></div>'
   ).join('') || '<div class="helpText" style="margin-top:0;">참가자를 기다리는 중…</div>';
-  if(NET.role==='host'){
-    const btn = document.getElementById('startGameBtn');
+  const btn = document.getElementById('startGameBtn');
+  if(NET.youAreHost){
+    btn.classList.remove('hidden');
     btn.disabled = lobby.length<2;
     btn.textContent = '게임 시작 ('+lobby.length+'/4명)';
+  } else {
+    btn.classList.add('hidden');
   }
 }
 
@@ -2040,10 +1631,6 @@ function enterGameScreen(){
 function boot(){
   renderLengthChoice();
   const room = new URLSearchParams(location.search).get('room');
-  if(typeof Peer === 'undefined'){
-    setNetStatus('네트워크 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요.');
-    return;
-  }
   if(room){
     document.getElementById('createCard').classList.add('hidden');
     document.getElementById('joinCard').classList.remove('hidden');
@@ -2061,6 +1648,10 @@ function boot(){
       document.getElementById('createCard').classList.add('hidden');
       document.getElementById('lobbyCard').classList.remove('hidden');
       createRoom(name);
+    });
+    document.getElementById('quickMatchBtn').addEventListener('click', ()=>{
+      const name = document.getElementById('createNameInput').value.trim() || '투자자';
+      quickMatch(name);
     });
     setNetStatus('방을 만들 준비가 되었습니다.');
   }
