@@ -1,7 +1,16 @@
 <!DOCTYPE html>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>주가조작단 — 트레이딩 보드게임</title>
+<meta name="description" content="2~4인용 실시간 온라인 주식 시뮬레이션 보드게임">
+<meta name="theme-color" content="#0a0d12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="주가조작단">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
 :root{
   --bg:#0a0d12;
@@ -33,7 +42,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box;}
-html,body{margin:0;padding:0;}
+html,body{margin:0;padding:0;overscroll-behavior:none;}
 body{
   background:
     radial-gradient(ellipse 900px 500px at 50% -10%, rgba(201,163,92,0.07), transparent),
@@ -42,9 +51,13 @@ body{
   font-family:var(--sans);
   min-height:100vh;
   -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
 }
 ::selection{background:var(--accent-wash);color:var(--accent-strong);}
-button{font-family:inherit;}
+button{font-family:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 button:focus-visible, input:focus-visible, select:focus-visible{
   outline:2px solid var(--accent-strong); outline-offset:2px;
 }
@@ -75,7 +88,7 @@ button:focus-visible, input:focus-visible, select:focus-visible{
 @media (prefers-reduced-motion:reduce){ .tickerTrack{animation:none;padding-left:1rem;} }
 
 /* ---------- Shell ---------- */
-#app{max-width:1400px;margin:0 auto;padding:1.25rem 1.25rem 3rem;}
+#app{max-width:1400px;margin:0 auto;padding:1.25rem calc(1.25rem + env(safe-area-inset-right)) 3rem calc(1.25rem + env(safe-area-inset-left));}
 header.masthead{
   display:flex;align-items:baseline;justify-content:space-between;gap:1rem;
   border-bottom:2px solid var(--border-strong);
@@ -528,6 +541,10 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
 
     <div class="card">
       <div class="helpText" id="netStatus" style="margin-top:0;">연결 준비 중…</div>
+    </div>
+
+    <div class="helpText" style="text-align:center;margin-top:1rem;opacity:.6;">
+      본 게임은 가상의 재화로 진행되는 시뮬레이션 보드게임이며, 실제 금융 상품·투자 자문과 무관합니다.
     </div>
   </div>
 
@@ -2070,5 +2087,11 @@ document.querySelectorAll('.tabBtn').forEach(btn=>{
 });
 
 boot();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
 })();
 </script>
