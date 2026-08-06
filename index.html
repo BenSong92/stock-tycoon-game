@@ -621,6 +621,15 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
 (function(){
 "use strict";
 
+window.addEventListener('error', e=>{
+  const el = document.getElementById('netStatus');
+  if(el) el.textContent = '[JS 오류] '+e.message+' ('+(e.filename||'')+':'+e.lineno+')';
+});
+window.addEventListener('unhandledrejection', e=>{
+  const el = document.getElementById('netStatus');
+  if(el) el.textContent = '[처리 안 된 오류] '+(e.reason && e.reason.message ? e.reason.message : e.reason);
+});
+
 /* ============ DATA ============ */
 const COMPANIES = [
   {id:'samsung', name:'삼성전자',        color:'#4d7cff', base:52000},
@@ -1256,7 +1265,7 @@ function createRoom(name){
     });
     NET.guestConns[conn.peer]=conn;
   });
-  NET.peer.on('error', err=> setNetStatus('연결 오류: '+err.type));
+  NET.peer.on('error', err=> setNetStatus('연결 오류: '+err.type+' / '+(err.message||'상세정보 없음')+' / online='+navigator.onLine));
 }
 function handleHostMessage(conn, data){
   if(data.type==='join'){
@@ -1303,9 +1312,9 @@ function joinRoom(roomId, name){
     conn.on('open', ()=>{ conn.send({type:'join', name}); setNetStatus('대기실 입장 중…'); });
     conn.on('data', data=> handleGuestMessage(data));
     conn.on('close', ()=> setNetStatus('호스트와 연결이 끊어졌습니다. 새로고침 후 다시 시도해 주세요.'));
-    conn.on('error', err=> setNetStatus('연결 오류가 발생했습니다.'));
+    conn.on('error', err=> setNetStatus('연결 오류: '+(err.message||err.type||'상세정보 없음')));
   });
-  NET.peer.on('error', err=> setNetStatus('연결 오류: '+err.type+' (링크를 다시 확인해 주세요)'));
+  NET.peer.on('error', err=> setNetStatus('연결 오류: '+err.type+' / '+(err.message||'상세정보 없음')+' / online='+navigator.onLine));
 }
 function handleGuestMessage(data){
   if(data.type==='lobby'){ lobby=data.lobby; setNetStatus(''); renderLobby(); }
