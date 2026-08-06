@@ -731,9 +731,18 @@ let lobby = []; // [{name}] — mirrors the server's lobby list
 let pendingSettings = { turnsPerPlayer: 18 };
 const SERVER_HTTP = 'https://jujak-server.skkcbk.workers.dev';
 const SERVER_WS = 'wss://jujak-server.skkcbk.workers.dev';
-// Identifies "this device/session" to the server so reconnects are recognized correctly —
+// Identifies "this device" to the server so reconnects are recognized correctly —
 // display names can't be used for that since two different people may pick the same one.
-const CLIENT_ID = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('c'+Math.random().toString(36).slice(2)+Date.now());
+// Persisted in localStorage (not just an in-memory value) because mobile browsers/TWAs
+// commonly reload the page after being backgrounded (e.g. switching to KakaoTalk to send
+// the invite link) — without this, the host would come back as a brand-new participant
+// and lose their host seat to whoever already joined in the meantime.
+function genId(){ return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('c'+Math.random().toString(36).slice(2)+Date.now()); }
+let CLIENT_ID;
+try{
+  CLIENT_ID = localStorage.getItem('jujak_cid');
+  if(!CLIENT_ID){ CLIENT_ID = genId(); localStorage.setItem('jujak_cid', CLIENT_ID); }
+}catch(e){ CLIENT_ID = genId(); }
 const NET = { ws:null, roomId:null, myName:null, youAreHost:false };
 
 function fmt(n){ return Math.round(n).toLocaleString('ko-KR')+'원'; }
@@ -763,12 +772,22 @@ function randomRoomCode(){
   let s=''; for(let i=0;i<6;i++) s+=chars[Math.floor(Math.random()*chars.length)];
   return s;
 }
+function saveSession(){
+  try{ sessionStorage.setItem('jujak_session', JSON.stringify({roomId:NET.roomId, name:NET.myName, opts:NET.opts})); }catch(e){}
+}
+function clearSession(){
+  try{ sessionStorage.removeItem('jujak_session'); }catch(e){}
+}
+function loadSession(){
+  try{ const raw = sessionStorage.getItem('jujak_session'); return raw? JSON.parse(raw) : null; }catch(e){ return null; }
+}
 function connectWs(roomId, name, opts){
   NET.roomId = roomId;
   NET.myName = name;
   NET.opts = opts || {};
   NET.intentionalClose = false;
   NET.reconnectAttempts = 0;
+  saveSession();
   doConnect();
 }
 function doConnect(){
@@ -953,7 +972,7 @@ function playMeta(meta){
     animateRoll(meta);
   } else {
     renderAll();
-    if(meta && meta.kind==='gameEnd'){ showEndGameModal(); }
+    if(meta && meta.kind==='gameEnd'){ clearSession(); showEndGameModal(); }
   }
 }
 function animateRoll(meta){
@@ -1647,28 +1666,40 @@ function enterGameScreen(){
 function boot(){
   renderLengthChoice();
   const room = new URLSearchParams(location.search).get('room');
-  if(room){
+  const saved = loadSession();
+
+  document.getElementById('createBtn').addEventListener('click', ()=>{
+    const name = document.getElementById('createNameInput').value.trim() || '호스트';
+    document.getElementById('createCard').classList.add('hidden');
+    document.getElementById('lobbyCard').classList.remove('hidden');
+    createRoom(name);
+  });
+  document.getElementById('quickMatchBtn').addEventListener('click', ()=>{
+    const name = document.getElementById('createNameInput').value.trim() || '투자자';
+    quickMatch(name);
+  });
+  document.getElementById('joinBtn').addEventListener('click', ()=>{
+    const name = document.getElementById('joinNameInput').value.trim() || '투자자';
+    document.getElementById('joinCard').classList.add('hidden');
+    document.getElementById('lobbyCard').classList.remove('hidden');
+    joinRoom(room, name);
+  });
+
+  if(saved && saved.roomId){
+    // Picking back up after the page was reloaded in the background (e.g. switching
+    // apps to send the invite link) — reconnect to the same room as the same device
+    // instead of showing the create/join screen again.
+    document.getElementById('createCard').classList.add('hidden');
+    document.getElementById('joinCard').classList.add('hidden');
+    document.getElementById('lobbyCard').classList.remove('hidden');
+    setNetStatus('이전 대기실에 다시 접속하는 중…');
+    connectWs(saved.roomId, saved.name, saved.opts);
+  } else if(room){
     document.getElementById('createCard').classList.add('hidden');
     document.getElementById('joinCard').classList.remove('hidden');
     document.getElementById('waitingText').classList.remove('hidden');
-    document.getElementById('joinBtn').addEventListener('click', ()=>{
-      const name = document.getElementById('joinNameInput').value.trim() || '투자자';
-      document.getElementById('joinCard').classList.add('hidden');
-      document.getElementById('lobbyCard').classList.remove('hidden');
-      joinRoom(room, name);
-    });
     setNetStatus('참가할 준비가 되었습니다.');
   } else {
-    document.getElementById('createBtn').addEventListener('click', ()=>{
-      const name = document.getElementById('createNameInput').value.trim() || '호스트';
-      document.getElementById('createCard').classList.add('hidden');
-      document.getElementById('lobbyCard').classList.remove('hidden');
-      createRoom(name);
-    });
-    document.getElementById('quickMatchBtn').addEventListener('click', ()=>{
-      const name = document.getElementById('createNameInput').value.trim() || '투자자';
-      quickMatch(name);
-    });
     setNetStatus('방을 만들 준비가 되었습니다.');
   }
   document.getElementById('copyLinkBtn').addEventListener('click', ()=>{
