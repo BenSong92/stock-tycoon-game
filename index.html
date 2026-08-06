@@ -761,30 +761,41 @@ function randomRoomCode(){
   return s;
 }
 function connectWs(roomId, name, opts){
-  opts = opts || {};
   NET.roomId = roomId;
   NET.myName = name;
-  setNetStatus('연결 서버에 접속 중…');
-  let url = SERVER_WS+'/room/'+roomId+'/ws?name='+encodeURIComponent(name);
-  if(opts.isNewRoom) url += '&roomId='+encodeURIComponent(roomId)+'&public='+(opts.public?'1':'0');
+  NET.opts = opts || {};
+  NET.intentionalClose = false;
+  NET.reconnectAttempts = 0;
+  doConnect();
+}
+function doConnect(){
+  setNetStatus(NET.reconnectAttempts>0 ? '재연결 시도 중… ('+NET.reconnectAttempts+')' : '연결 서버에 접속 중…');
+  const opts = NET.opts;
+  let url = SERVER_WS+'/room/'+NET.roomId+'/ws?name='+encodeURIComponent(NET.myName);
+  if(opts.isNewRoom) url += '&roomId='+encodeURIComponent(NET.roomId)+'&public='+(opts.public?'1':'0');
   const ws = new WebSocket(url);
   NET.ws = ws;
-  ws.addEventListener('open', ()=> setNetStatus(''));
+  ws.addEventListener('open', ()=>{ NET.reconnectAttempts = 0; setNetStatus(''); });
   ws.addEventListener('message', e=>{
     let data; try{ data = JSON.parse(e.data); }catch(err){ return; }
     handleServerMessage(data);
   });
   ws.addEventListener('close', ()=>{
-    if(!G) setNetStatus('서버와 연결이 끊어졌습니다. 새로고침 후 다시 시도해 주세요.');
-    else setNetStatus('서버와 연결이 끊어졌습니다.');
+    if(NET.intentionalClose) return;
+    if(G && G.ended) return;
+    if(NET.reconnectAttempts < 8){
+      NET.reconnectAttempts++;
+      setNetStatus('연결이 끊어졌습니다. 재연결 시도 중… ('+NET.reconnectAttempts+'/8)');
+      setTimeout(doConnect, Math.min(1000*NET.reconnectAttempts, 5000));
+    } else {
+      setNetStatus('서버와 연결이 끊어졌습니다. 앱을 완전히 종료했다가 다시 열어 주세요.');
+    }
   });
-  ws.addEventListener('error', ()=> setNetStatus('연결 오류가 발생했습니다. (네트워크 상태를 확인해 주세요)'));
+  ws.addEventListener('error', ()=>{});
 }
 function createRoom(name){
   const roomId = randomRoomCode();
   connectWs(roomId, name, {isNewRoom:true, public:false});
-  document.getElementById('inviteLink').value = location.origin+location.pathname+'?room='+roomId;
-  document.getElementById('inviteBox').classList.remove('hidden');
 }
 function joinRoom(roomId, name){
   connectWs(roomId, name, {isNewRoom:false});
@@ -798,8 +809,6 @@ async function quickMatch(name){
     document.getElementById('createCard').classList.add('hidden');
     document.getElementById('lobbyCard').classList.remove('hidden');
     connectWs(data.roomId, name, {isNewRoom:true, public:true});
-    document.getElementById('inviteLink').value = location.origin+location.pathname+'?room='+data.roomId;
-    document.getElementById('inviteBox').classList.remove('hidden');
   }catch(e){
     setNetStatus('매칭 서버에 연결할 수 없습니다. 다시 시도해 주세요.');
   }
@@ -810,6 +819,10 @@ function handleServerMessage(data){
     NET.youAreHost = !!data.youAreHost;
     if(data.pendingSettings) pendingSettings = data.pendingSettings;
     setNetStatus('');
+    if(NET.youAreHost && NET.roomId){
+      document.getElementById('inviteLink').value = location.origin+location.pathname+'?room='+NET.roomId;
+      document.getElementById('inviteBox').classList.remove('hidden');
+    }
     renderLobby();
     renderLengthChoice();
   } else if(data.type==='settings'){
