@@ -867,7 +867,7 @@ function handleServerMessage(data){
   }
 }
 function hostStartGame(){
-  if(lobby.length<2 || !NET.ws) return;
+  if(lobby.length<1 || !NET.ws) return;
   NET.ws.send(JSON.stringify({type:'startGame'}));
 }
 function requestAction(action){
@@ -1649,8 +1649,8 @@ function renderLobby(){
   const btn = document.getElementById('startGameBtn');
   if(NET.youAreHost){
     btn.classList.remove('hidden');
-    btn.disabled = lobby.length<2;
-    btn.textContent = '게임 시작 ('+lobby.length+'/4명)';
+    btn.disabled = lobby.length<1;
+    btn.textContent = lobby.length<2 ? '혼자 시작하기 ('+lobby.length+'/4명)' : '게임 시작 ('+lobby.length+'/4명)';
   } else {
     btn.classList.add('hidden');
   }
