@@ -537,6 +537,10 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
         </div>
       </div>
       <div id="lobbyList" style="margin-top:1rem;"></div>
+      <div class="helpText hidden" id="botSelectRow" style="margin-top:.75rem;display:flex;align-items:center;gap:.5rem;">
+        <label for="botCountSelect">AI 플레이어 추가:</label>
+        <select id="botCountSelect"></select>
+      </div>
       <button class="bigBtn hidden" id="startGameBtn">게임 시작</button>
       <div class="helpText hidden" id="waitingText">호스트가 게임을 시작하면 자동으로 게임 화면으로 전환됩니다.</div>
     </div>
@@ -868,7 +872,8 @@ function handleServerMessage(data){
 }
 function hostStartGame(){
   if(lobby.length<1 || !NET.ws) return;
-  NET.ws.send(JSON.stringify({type:'startGame'}));
+  const botCount = parseInt((document.getElementById('botCountSelect')||{}).value)||0;
+  NET.ws.send(JSON.stringify({type:'startGame', botCount}));
 }
 function requestAction(action){
   if(NET.ws && NET.ws.readyState===WebSocket.OPEN) NET.ws.send(JSON.stringify({type:'action', action}));
@@ -1443,7 +1448,7 @@ function renderMyIdentity(){
   const changed = lastSeenCash!==null && me.cash!==lastSeenCash;
   const diff = changed? me.cash-lastSeenCash : 0;
   box.innerHTML = '나: <b style="color:'+me.color+'">'+(PLAYER_TOKENS[myPlayerIndex]||'')+' '+me.name+'</b>'+
-    (myPlayerIndex===G.currentIndex? ' — <b style="color:var(--accent-strong)">지금 당신 차례입니다</b>' : ' — 다른 사람 차례를 기다리는 중')+
+    (myPlayerIndex===G.currentIndex? ' — <b style="color:var(--accent-strong)">지금 당신 차례입니다</b>' : (G.players[G.currentIndex] && G.players[G.currentIndex].isBot ? ' — 🤖 AI가 턴을 진행 중입니다' : ' — 다른 사람 차례를 기다리는 중'))+
     '<div class="cashLine">내 현금 '+fmt(me.cash)+
     (changed? '<span class="cashDelta '+(diff>=0?'up':'down')+'">'+(diff>=0?'+'+fmt(diff):fmt(diff))+'</span>' : '')+
     '</div>';
@@ -1647,11 +1652,27 @@ function renderLobby(){
     '<span class="tag">'+(i===0?'호스트':'참가자')+(l.name===NET.myName?' · 나':'')+'</span></div>'
   ).join('') || '<div class="helpText" style="margin-top:0;">참가자를 기다리는 중…</div>';
   const btn = document.getElementById('startGameBtn');
+  const botRow = document.getElementById('botSelectRow');
+  const botSelect = document.getElementById('botCountSelect');
   if(NET.youAreHost){
     btn.classList.remove('hidden');
     btn.disabled = lobby.length<1;
-    btn.textContent = lobby.length<2 ? '혼자 시작하기 ('+lobby.length+'/4명)' : '게임 시작 ('+lobby.length+'/4명)';
+    const maxBots = Math.max(0, 4-lobby.length);
+    if(maxBots>0){
+      botRow.classList.remove('hidden');
+      const prevVal = botSelect.value;
+      botSelect.innerHTML = Array.from({length:maxBots+1},(_,n)=>'<option value="'+n+'">'+n+'명</option>').join('');
+      botSelect.value = (prevVal && parseInt(prevVal)<=maxBots) ? prevVal : String(maxBots);
+    } else {
+      botRow.classList.add('hidden');
+      botSelect.innerHTML = '<option value="0">0명</option>';
+      botSelect.value = '0';
+    }
+    const botCount = parseInt(botSelect.value)||0;
+    const totalCount = lobby.length+botCount;
+    btn.textContent = botCount>0 ? '게임 시작 ('+lobby.length+'명 + AI '+botCount+'명)' : (lobby.length<2 ? '혼자 시작하기 ('+lobby.length+'/4명)' : '게임 시작 ('+lobby.length+'/4명)');
   } else {
+    botRow.classList.add('hidden');
     btn.classList.add('hidden');
   }
 }
@@ -1712,6 +1733,7 @@ function boot(){
     setTimeout(()=>btn.textContent=old, 1500);
   });
   document.getElementById('startGameBtn').addEventListener('click', hostStartGame);
+  document.getElementById('botCountSelect').addEventListener('change', renderLobby);
   document.getElementById('chatSendBtn').addEventListener('click', ()=>{
     const input = document.getElementById('chatInput');
     sendChatMessage(input.value);
