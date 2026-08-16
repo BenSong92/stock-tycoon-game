@@ -322,15 +322,21 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 
 .playerCard{
   border:1px solid var(--border);border-radius:8px;padding:.7rem .85rem;background:var(--panel);
-  display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem;
+  display:flex;flex-direction:column;gap:.55rem;margin-bottom:.5rem;
   box-shadow:0 6px 14px -8px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.04);
 }
 .playerCard.current{border-color:var(--accent);background:var(--accent-wash);}
 .playerCard.me{outline:1px dashed var(--border-strong);}
+.playerCard .pcTop{display:flex;align-items:center;gap:.5rem;min-width:0;}
 .playerCard .dot{width:11px;height:11px;border-radius:50%;flex:none;}
-.playerCard .pname{font-weight:700;flex:1;font-size:.88rem;}
-.playerCard .pstats{display:flex;gap:.9rem;font-family:var(--mono);font-size:.76rem;color:var(--ink-2);}
-.playerCard .pstats b{color:var(--ink);font-weight:600;}
+/* white-space:nowrap+ellipsis keeps the name on one horizontal line no matter how
+   narrow the card gets, instead of Korean's default per-syllable line-breaking
+   collapsing it into a vertical stack of single characters. */
+.playerCard .pname{font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.playerCard .pstats{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem .6rem;font-family:var(--mono);}
+.playerCard .pstats .pstat{display:flex;flex-direction:column;gap:.15rem;min-width:0;}
+.playerCard .pstats .pstatLabel{font-size:.66rem;color:var(--ink-3);}
+.playerCard .pstats .pstatVal{font-size:.8rem;color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 .stockGrid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
 @media(max-width:900px){.stockGrid{grid-template-columns:1fr;}}
@@ -1347,13 +1353,15 @@ function renderPlayerCards(){
   G.players.forEach((p,i)=>{
     const card = el('div','playerCard'+(i===G.currentIndex?' current':'')+(i===myPlayerIndex?' me':''));
     card.innerHTML =
-      '<span class="dot" style="background:'+p.color+'"></span>'+
-      '<span class="pname">'+(PLAYER_TOKENS[i]||'')+' '+p.name+(i===myPlayerIndex?' (나)':'')+'</span>'+
-      '<span class="pstats">'+
-        '<span>현금 <b>'+fmt(p.cash)+'</b></span>'+
-        '<span>대출 <b>'+fmt(p.loan)+'</b></span>'+
-        '<span>순자산 <b>'+fmt(netWorth(p))+'</b></span>'+
-      '</span>';
+      '<div class="pcTop">'+
+        '<span class="dot" style="background:'+p.color+'"></span>'+
+        '<span class="pname">'+(PLAYER_TOKENS[i]||'')+' '+p.name+(i===myPlayerIndex?' (나)':'')+'</span>'+
+      '</div>'+
+      '<div class="pstats">'+
+        '<div class="pstat"><span class="pstatLabel">현금</span><span class="pstatVal">'+fmt(p.cash)+'</span></div>'+
+        '<div class="pstat"><span class="pstatLabel">대출</span><span class="pstatVal">'+fmt(p.loan)+'</span></div>'+
+        '<div class="pstat"><span class="pstatLabel">순자산</span><span class="pstatVal">'+fmt(netWorth(p))+'</span></div>'+
+      '</div>';
     wrap.appendChild(card);
   });
 }
