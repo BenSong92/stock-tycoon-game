@@ -475,6 +475,10 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
 }
 .modal .closeBtn:hover{background:var(--accent);color:#1a1200;}
 .modal.wide{max-width:640px;}
+.modal .footerRow{display:flex;gap:.6rem;margin-top:1.2rem;}
+.modal .footerRow .closeBtn{margin-top:0;}
+.modal .footerRow .closeBtn.secondary{background:transparent;border-color:var(--border-strong);color:var(--ink-2);}
+.modal .footerRow .closeBtn.secondary:hover{border-color:var(--accent);color:var(--ink);background:var(--panel-2);}
 .rulesBody{max-height:58vh;overflow-y:auto;margin-top:.6rem;padding-right:.4rem;}
 .rulesBody h4{font-family:var(--serif);font-size:.95rem;color:var(--accent-strong);margin:1.1rem 0 .3rem;}
 .rulesBody h4:first-child{margin-top:0;}
@@ -822,6 +826,7 @@ function doConnect(){
 }
 function createRoom(name){
   const roomId = randomRoomCode();
+  NET.desiredTurnsPerPlayer = pendingSettings.turnsPerPlayer;
   connectWs(roomId, name, {isNewRoom:true, public:false});
 }
 function joinRoom(roomId, name){
@@ -833,6 +838,7 @@ async function quickMatch(name){
     const res = await fetch(SERVER_HTTP+'/api/quickmatch', {method:'POST'});
     if(!res.ok) throw new Error('bad status');
     const data = await res.json();
+    NET.desiredTurnsPerPlayer = pendingSettings.turnsPerPlayer;
     document.getElementById('createCard').classList.add('hidden');
     document.getElementById('lobbyCard').classList.remove('hidden');
     connectWs(data.roomId, name, {isNewRoom:true, public:true});
@@ -845,6 +851,16 @@ function handleServerMessage(data){
     lobby = data.lobby;
     NET.youAreHost = !!data.youAreHost;
     if(data.pendingSettings) pendingSettings = data.pendingSettings;
+    // If we picked a game length before the room even existed (on the create screen),
+    // the server's very first lobby broadcast still reflects ITS fresh default (18) --
+    // push our pre-chosen value now so it doesn't silently snap back to 18.
+    if(NET.desiredTurnsPerPlayer!=null){
+      if(NET.youAreHost && pendingSettings.turnsPerPlayer!==NET.desiredTurnsPerPlayer){
+        pendingSettings.turnsPerPlayer = NET.desiredTurnsPerPlayer;
+        if(NET.ws) NET.ws.send(JSON.stringify({type:'setLength', turnsPerPlayer:NET.desiredTurnsPerPlayer}));
+      }
+      NET.desiredTurnsPerPlayer = null;
+    }
     setNetStatus('');
     if(NET.youAreHost && NET.roomId){
       document.getElementById('inviteLink').value = location.origin+location.pathname+'?room='+NET.roomId;
@@ -1534,19 +1550,30 @@ function showWarningModal(payload){
     '<p>'+payload.text+'</p>'
   );
 }
-function openModal(innerHtml, extraClass){
+function openModal(innerHtml, extraClass, footerHtml){
   const existing = document.getElementById('modalOverlay');
   if(existing) existing.remove();
   const overlay = el('div','overlay');
   overlay.id='modalOverlay';
-  const modal = el('div','modal'+(extraClass?(' '+extraClass):''), innerHtml+'<button class="closeBtn" id="modalClose">확인</button>');
+  const footer = footerHtml!==undefined ? footerHtml : '<button class="closeBtn" id="modalClose">확인</button>';
+  const modal = el('div','modal'+(extraClass?(' '+extraClass):''), innerHtml+footer);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
-  document.getElementById('modalClose').addEventListener('click', ()=>overlay.remove());
+  const closeBtn = document.getElementById('modalClose');
+  if(closeBtn) closeBtn.addEventListener('click', ()=>overlay.remove());
+  return overlay;
 }
 
-function showRulesModal(){
-  openModal(
+function showRulesModal(auto){
+  if(auto){
+    try{ if(localStorage.getItem('jujak_hideRules')==='1') return; }catch(e){}
+  }
+  const footer = auto ?
+    '<div class="footerRow">'+
+      '<button class="closeBtn secondary" id="rulesDontShowBtn" style="flex:1;">다시는 보지 않기</button>'+
+      '<button class="closeBtn" id="rulesCloseBtn" style="flex:1;">닫기</button>'+
+    '</div>' : undefined;
+  const overlay = openModal(
     '<div class="kicker">가이드 · How to Play</div>'+
     '<h3>주가조작단 게임 방법</h3>'+
     '<div class="rulesBody">'+
@@ -1571,8 +1598,16 @@ function showRulesModal(){
       '<h4>승리</h4>'+
       '<p>설정한 턴 수가 모두 끝나면 그 시점의 순자산 1위가 최종 승자입니다.</p>'+
     '</div>',
-    'wide'
+    'wide',
+    footer
   );
+  if(auto){
+    document.getElementById('rulesDontShowBtn').addEventListener('click', ()=>{
+      try{ localStorage.setItem('jujak_hideRules','1'); }catch(e){}
+      overlay.remove();
+    });
+    document.getElementById('rulesCloseBtn').addEventListener('click', ()=>overlay.remove());
+  }
 }
 
 /* ============ END GAME ============ */
@@ -1631,7 +1666,10 @@ function setNetStatus(text){ document.getElementById('netStatus').textContent = 
 function renderLengthChoice(){
   const lenWrap = document.getElementById('lengthChoice');
   lenWrap.innerHTML='';
-  const editable = NET.youAreHost && !G;
+  // Before a room even exists there's no "host" yet to check -- whoever is looking at
+  // this screen will become the host the moment they create the room, so it should
+  // already be freely choosable. Once connected, only the actual host may still edit it.
+  const editable = !G && (!NET.ws || NET.youAreHost);
   [[12,'짧게'],[18,'보통'],[24,'길게']].forEach(([v,label])=>{
     const chip = el('div','chip'+(pendingSettings.turnsPerPlayer===v?' active':''), label+' · 1인당 '+v+'턴');
     if(!editable) chip.style.opacity='.55';
@@ -1683,6 +1721,7 @@ function enterGameScreen(){
   buildBoard();
   renderAll();
   startTimerTick();
+  showRulesModal(true);
 }
 
 function boot(){
@@ -1743,7 +1782,7 @@ function boot(){
   document.getElementById('chatInput').addEventListener('keydown', e=>{
     if(e.key==='Enter'){ e.preventDefault(); document.getElementById('chatSendBtn').click(); }
   });
-  document.getElementById('rulesBtn').addEventListener('click', showRulesModal);
+  document.getElementById('rulesBtn').addEventListener('click', ()=>showRulesModal(false));
 }
 
 document.querySelectorAll('.tabBtn').forEach(btn=>{
