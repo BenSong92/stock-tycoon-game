@@ -272,6 +272,14 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
 .turnTimerWrap{width:100%;max-width:220px;height:6px;background:var(--panel-3);border-radius:3px;overflow:hidden;margin-top:.3rem;}
 .turnTimerBar{height:100%;width:100%;background:var(--good);transition:width 1s linear, background .3s;}
 .turnTimerText{font-family:var(--mono);font-size:.68rem;color:var(--ink-3);margin-top:.15rem;}
+.turnEndingToast{
+  position:fixed;left:50%;top:16%;transform:translate(-50%,-8px);z-index:200;
+  background:var(--panel);border:1px solid var(--critical);color:var(--ink);
+  padding:.7rem 1.15rem;border-radius:10px;font-weight:700;font-size:.85rem;
+  box-shadow:0 12px 30px rgba(0,0,0,.55);opacity:0;pointer-events:none;
+  transition:opacity .25s,transform .25s;max-width:88vw;text-align:center;
+}
+.turnEndingToast.show{opacity:1;transform:translate(-50%,0);}
 .endTurnBtn{
   padding:clamp(.4rem,2vw,.55rem) clamp(.6rem,3vw,1.2rem);border-radius:8px;border:1px solid var(--border-strong);background:var(--panel-3);
   color:var(--ink);cursor:pointer;font-size:clamp(.72rem,2.4vw,.85rem);min-height:40px;
@@ -528,6 +536,8 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
       <button class="bigBtn" id="createBtn">방 만들기</button>
       <button class="bigBtn" id="quickMatchBtn" style="margin-top:.6rem;background:linear-gradient(180deg,var(--panel-3),var(--panel-2));color:var(--ink);border-color:var(--border-strong);">🎲 무작위로 매칭하기</button>
       <div class="helpText" style="margin-top:.5rem;">무작위 매칭은 모르는 사람과 한 방에서 플레이해요. 닉네임과 채팅이 상대방에게 그대로 보이니 개인정보는 적지 말아 주세요. 불편한 상대는 채팅에서 신고할 수 있어요.</div>
+      <button class="bigBtn" id="practiceBtn" style="margin-top:.6rem;background:linear-gradient(180deg,var(--panel-3),var(--panel-2));color:var(--ink);border-color:var(--border-strong);">🎓 연습으로 먼저 해보기 (혼자 2턴)</button>
+      <div class="helpText" style="margin-top:.5rem;">주식이 처음이라면 이걸로 시작해보세요. 혼자서 딱 2턴만 짧게 플레이하며 매수·매도·공매도를 가볍게 체험할 수 있어요.</div>
     </div>
 
     <div class="card hidden" id="joinCard">
@@ -838,6 +848,18 @@ function createRoom(name){
 function joinRoom(roomId, name){
   connectWs(roomId, name, {isNewRoom:false});
 }
+function startPracticeGame(){
+  const name = document.getElementById('createNameInput').value.trim() || '연습생';
+  const roomId = randomRoomCode();
+  // Bypasses the normal lobby wait entirely: as soon as we're confirmed host, fire
+  // 'startGame' ourselves with an explicit short turnsPerPlayer override (see the
+  // 'lobby' handler below) instead of making the user click through the lobby screen.
+  NET.autoStart = {botCount:0, turnsPerPlayer:2};
+  NET.isPractice = true;
+  document.getElementById('createCard').classList.add('hidden');
+  document.getElementById('lobbyCard').classList.remove('hidden');
+  connectWs(roomId, name, {isNewRoom:true, public:false});
+}
 async function quickMatch(name){
   setNetStatus('빈 방을 찾는 중…');
   try{
@@ -866,6 +888,11 @@ function handleServerMessage(data){
         if(NET.ws) NET.ws.send(JSON.stringify({type:'setLength', turnsPerPlayer:NET.desiredTurnsPerPlayer}));
       }
       NET.desiredTurnsPerPlayer = null;
+    }
+    if(NET.autoStart && NET.youAreHost){
+      const opts = NET.autoStart;
+      NET.autoStart = null;
+      if(NET.ws) NET.ws.send(JSON.stringify({type:'startGame', botCount:opts.botCount, turnsPerPlayer:opts.turnsPerPlayer}));
     }
     setNetStatus('');
     if(NET.youAreHost && NET.roomId){
@@ -1509,6 +1536,7 @@ function startTimerTick(){
   if(timerTickHandle) clearInterval(timerTickHandle);
   timerTickHandle = setInterval(updateTimerDisplay, 500);
 }
+let lastTurnWarnDeadline = null;
 function updateTimerDisplay(){
   if(!G || G.ended || !G.turnDeadline) return;
   const bar = document.getElementById('turnTimerBar');
@@ -1519,6 +1547,25 @@ function updateTimerDisplay(){
   const pct = clamp((remain/TURN_SECONDS)*100,0,100);
   bar.style.width = pct+'%';
   bar.style.background = remain<=15? 'var(--critical)' : (remain<=30? 'var(--warning)':'var(--good)');
+  // One-shot popup so a player mid-purchase on mobile (where the thin timer bar is
+  // easy to miss) notices their turn is about to auto-end. Keyed off turnDeadline so
+  // it fires exactly once per turn even though this runs on a 500ms interval.
+  if(myPlayerIndex===G.currentIndex && remain<=10 && remain>0 && lastTurnWarnDeadline!==G.turnDeadline){
+    lastTurnWarnDeadline = G.turnDeadline;
+    showTurnEndingToast(remain);
+  }
+}
+function showTurnEndingToast(remain){
+  const existing = document.getElementById('turnEndingToast');
+  if(existing) existing.remove();
+  const toast = el('div','turnEndingToast','⏰ '+remain+'초 후 내 턴이 자동으로 넘어갑니다!');
+  toast.id='turnEndingToast';
+  document.body.appendChild(toast);
+  requestAnimationFrame(()=>toast.classList.add('show'));
+  setTimeout(()=>{
+    toast.classList.remove('show');
+    setTimeout(()=>toast.remove(), 300);
+  }, 3000);
 }
 
 /* ============ MODALS ============ */
@@ -1632,7 +1679,8 @@ function showEndGameModal(){
     '<h3>'+ranked[0].p.name+'님, 최종 승리!</h3>'+
     bodyRows+
     '<canvas id="'+canvasId+'" style="width:100%;height:140px;margin-top:.8rem;"></canvas>'+
-    '<div id="chartLegend"></div>'
+    '<div id="chartLegend"></div>'+
+    (NET.isPractice ? '<p class="helpText" style="margin-top:.8rem;">연습이 끝났어요! 처음 화면에서 "방 만들기"로 친구들과 진짜 게임을 시작해보세요.</p>' : '')
   );
   const legend = document.getElementById('chartLegend');
   legend.innerHTML = G.players.map(p=>'<span><i style="background:'+p.color+'"></i>'+p.name+'</span>').join('');
@@ -1747,6 +1795,7 @@ function boot(){
     const name = document.getElementById('createNameInput').value.trim() || '투자자';
     quickMatch(name);
   });
+  document.getElementById('practiceBtn').addEventListener('click', startPracticeGame);
   document.getElementById('joinBtn').addEventListener('click', ()=>{
     const name = document.getElementById('joinNameInput').value.trim() || '투자자';
     document.getElementById('joinCard').classList.add('hidden');
