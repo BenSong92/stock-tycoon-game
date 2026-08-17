@@ -112,6 +112,12 @@ header .status{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-
   padding:.42rem .85rem;border-radius:999px;font-size:.76rem;cursor:pointer;white-space:nowrap;font-weight:600;
 }
 .rulesBtn:hover{border-color:var(--accent);color:var(--accent-strong);background:var(--accent-wash);}
+.langBtn{
+  border:1px solid var(--border-strong);background:var(--panel-2);color:var(--ink-2);
+  padding:.42rem .7rem;border-radius:999px;font-size:.76rem;cursor:pointer;white-space:nowrap;font-weight:700;
+  font-family:var(--mono);
+}
+.langBtn:hover{border-color:var(--accent);color:var(--accent-strong);background:var(--accent-wash);}
 
 /* ---------- Setup / Lobby ---------- */
 #setupScreen{max-width:640px;margin:2rem auto;}
@@ -509,16 +515,17 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
 #chartLegend i{width:9px;height:9px;border-radius:50%;display:inline-block;}
 </style>
 
-<div id="tickerBar"><div class="tickerTrack" id="tickerTrack"><span>시장 개장 준비 중…</span></div></div>
+<div id="tickerBar"><div class="tickerTrack" id="tickerTrack"><span data-i18n="ticker_placeholder">시장 개장 준비 중…</span></div></div>
 
 <div id="app">
   <header class="masthead">
     <div>
       <h1>주가<span>조작</span>단</h1>
-      <div class="sub">Insider Trading Board Game · 2–4인용 실시간 온라인 보드게임</div>
+      <div class="sub" data-i18n="app_sub">Insider Trading Board Game · 2–4인용 실시간 온라인 보드게임</div>
     </div>
     <div class="headerRight">
-      <button class="rulesBtn" id="rulesBtn">게임 방법</button>
+      <button class="langBtn" id="langToggleBtn">EN</button>
+      <button class="rulesBtn" id="rulesBtn" data-i18n="rules_btn">게임 방법</button>
       <div class="status" id="headerStatus"></div>
     </div>
   </header>
@@ -526,52 +533,52 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
   <!-- ========== SETUP / LOBBY ========== -->
   <div id="setupScreen">
     <div class="card" id="createCard">
-      <h2>새 게임 만들기 <small>호스트</small></h2>
-      <div class="nameRow"><span class="swatch" style="background:#3987e5"></span><input id="createNameInput" placeholder="당신의 이름" maxlength="10" value="호스트"></div>
+      <h2><span data-i18n="create_title">새 게임 만들기</span> <small data-i18n="create_title_small">호스트</small></h2>
+      <div class="nameRow"><span class="swatch" style="background:#3987e5"></span><input id="createNameInput" data-i18n-placeholder="name_placeholder" placeholder="당신의 이름" maxlength="10" value="호스트"></div>
       <div style="margin-top:1rem;">
-        <div class="helpText" style="margin-top:0;">게임 길이</div>
+        <div class="helpText" style="margin-top:0;" data-i18n="game_length_label">게임 길이</div>
         <div class="rowChoice" id="lengthChoice" style="margin-top:.5rem;"></div>
       </div>
-      <div class="helpText">방을 만들면 초대 링크가 생성됩니다. 그 링크를 최대 3명의 친구에게 보내면, 각자 자기 스마트폰이나 PC로 접속해서 함께 실시간으로 플레이할 수 있습니다.</div>
-      <button class="bigBtn" id="createBtn">방 만들기</button>
-      <button class="bigBtn" id="quickMatchBtn" style="margin-top:.6rem;background:linear-gradient(180deg,var(--panel-3),var(--panel-2));color:var(--ink);border-color:var(--border-strong);">🎲 무작위로 매칭하기</button>
-      <div class="helpText" style="margin-top:.5rem;">무작위 매칭은 모르는 사람과 한 방에서 플레이해요. 닉네임과 채팅이 상대방에게 그대로 보이니 개인정보는 적지 말아 주세요. 불편한 상대는 채팅에서 신고할 수 있어요.</div>
-      <button class="bigBtn" id="practiceBtn" style="margin-top:.6rem;background:linear-gradient(180deg,var(--panel-3),var(--panel-2));color:var(--ink);border-color:var(--border-strong);">🎓 연습으로 먼저 해보기 (혼자 2턴)</button>
-      <div class="helpText" style="margin-top:.5rem;">주식이 처음이라면 이걸로 시작해보세요. 혼자서 딱 2턴만 짧게 플레이하며 매수·매도·공매도를 가볍게 체험할 수 있어요.</div>
+      <div class="helpText" data-i18n="create_invite_help">방을 만들면 초대 링크가 생성됩니다. 그 링크를 최대 3명의 친구에게 보내면, 각자 자기 스마트폰이나 PC로 접속해서 함께 실시간으로 플레이할 수 있습니다.</div>
+      <button class="bigBtn" id="createBtn" data-i18n="create_room_btn">방 만들기</button>
+      <button class="bigBtn" id="quickMatchBtn" data-i18n="quickmatch_btn" style="margin-top:.6rem;background:linear-gradient(180deg,var(--panel-3),var(--panel-2));color:var(--ink);border-color:var(--border-strong);">🎲 무작위로 매칭하기</button>
+      <div class="helpText" data-i18n="quickmatch_help" style="margin-top:.5rem;">무작위 매칭은 모르는 사람과 한 방에서 플레이해요. 닉네임과 채팅이 상대방에게 그대로 보이니 개인정보는 적지 말아 주세요. 불편한 상대는 채팅에서 신고할 수 있어요.</div>
+      <button class="bigBtn" id="practiceBtn" data-i18n="practice_btn" style="margin-top:.6rem;background:linear-gradient(180deg,var(--panel-3),var(--panel-2));color:var(--ink);border-color:var(--border-strong);">🎓 연습으로 먼저 해보기 (혼자 2턴)</button>
+      <div class="helpText" data-i18n="practice_help" style="margin-top:.5rem;">주식이 처음이라면 이걸로 시작해보세요. 혼자서 딱 2턴만 짧게 플레이하며 매수·매도·공매도를 가볍게 체험할 수 있어요.</div>
     </div>
 
     <div class="card hidden" id="joinCard">
-      <h2>게임 참가하기</h2>
-      <div class="nameRow"><span class="swatch" style="background:#d95926"></span><input id="joinNameInput" placeholder="당신의 이름" maxlength="10" value="투자자"></div>
-      <div class="helpText">초대 링크로 들어오셨습니다. 이름을 입력하고 참가 버튼을 누르세요.</div>
-      <button class="bigBtn" id="joinBtn">참가하기</button>
+      <h2 data-i18n="join_title">게임 참가하기</h2>
+      <div class="nameRow"><span class="swatch" style="background:#d95926"></span><input id="joinNameInput" data-i18n-placeholder="name_placeholder" placeholder="당신의 이름" maxlength="10" value="투자자"></div>
+      <div class="helpText" data-i18n="join_help">초대 링크로 들어오셨습니다. 이름을 입력하고 참가 버튼을 누르세요.</div>
+      <button class="bigBtn" id="joinBtn" data-i18n="join_btn">참가하기</button>
     </div>
 
     <div class="card hidden" id="lobbyCard">
-      <h2>대기실</h2>
+      <h2 data-i18n="lobby_title">대기실</h2>
       <div id="inviteBox" class="hidden">
-        <div class="helpText" style="margin-top:0;">아래 링크를 친구에게 공유하세요 (최대 4명, 본인 포함):</div>
+        <div class="helpText" data-i18n="invite_help" style="margin-top:0;">아래 링크를 친구에게 공유하세요 (최대 4명, 본인 포함):</div>
         <div class="inviteRow">
           <input id="inviteLink" readonly>
-          <button class="actionBtn gold" id="copyLinkBtn">복사</button>
+          <button class="actionBtn gold" id="copyLinkBtn" data-i18n="copy_btn">복사</button>
         </div>
       </div>
       <div id="lobbyList" style="margin-top:1rem;"></div>
       <div class="helpText hidden" id="botSelectRow" style="margin-top:.75rem;display:flex;align-items:center;gap:.5rem;">
-        <label for="botCountSelect">AI 플레이어 추가:</label>
+        <label for="botCountSelect" data-i18n="bot_add_label">AI 플레이어 추가:</label>
         <select id="botCountSelect"></select>
       </div>
       <button class="bigBtn hidden" id="startGameBtn">게임 시작</button>
-      <div class="helpText hidden" id="waitingText">호스트가 게임을 시작하면 자동으로 게임 화면으로 전환됩니다.</div>
+      <div class="helpText hidden" id="waitingText" data-i18n="waiting_host_text">호스트가 게임을 시작하면 자동으로 게임 화면으로 전환됩니다.</div>
     </div>
 
     <div class="card">
-      <div class="helpText" id="netStatus" style="margin-top:0;">연결 준비 중…</div>
+      <div class="helpText" id="netStatus" data-i18n="status_ready_create" style="margin-top:0;">연결 준비 중…</div>
     </div>
 
     <div class="helpText" style="text-align:center;margin-top:1rem;opacity:.6;">
-      본 게임은 가상의 재화로 진행되는 시뮬레이션 보드게임이며, 실제 금융 상품·투자 자문과 무관합니다.<br>
-      <a href="privacy.html" style="color:var(--accent-strong);">개인정보처리방침</a>
+      <span data-i18n="disclaimer">본 게임은 가상의 재화로 진행되는 시뮬레이션 보드게임이며, 실제 금융 상품·투자 자문과 무관합니다.</span><br>
+      <a href="privacy.html" style="color:var(--accent-strong);" data-i18n="privacy_link">개인정보처리방침</a>
     </div>
   </div>
 
@@ -583,13 +590,13 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
     <div class="sidebar">
       <div id="myIdentity"></div>
       <div class="tabs">
-        <button class="tabBtn active" data-tab="trade">거래소</button>
-        <button class="tabBtn" data-tab="short">공매도</button>
-        <button class="tabBtn" data-tab="news">뉴스/정보</button>
-        <button class="tabBtn" data-tab="finance">금융센터</button>
-        <button class="tabBtn" data-tab="rank">순위</button>
-        <button class="tabBtn" data-tab="log">중계</button>
-        <button class="tabBtn" data-tab="chat">채팅</button>
+        <button class="tabBtn active" data-tab="trade" data-i18n="tab_trade">거래소</button>
+        <button class="tabBtn" data-tab="short" data-i18n="tab_short">공매도</button>
+        <button class="tabBtn" data-tab="news" data-i18n="tab_news">뉴스/정보</button>
+        <button class="tabBtn" data-tab="finance" data-i18n="tab_finance">금융센터</button>
+        <button class="tabBtn" data-tab="rank" data-i18n="tab_rank">순위</button>
+        <button class="tabBtn" data-tab="log" data-i18n="tab_log">중계</button>
+        <button class="tabBtn" data-tab="chat" data-i18n="tab_chat">채팅</button>
       </div>
 
       <div id="playerCardsWrap"></div>
@@ -604,9 +611,9 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
       </div>
 
       <div class="tabPane" id="pane-news">
-        <div class="helpText" style="margin-top:0;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;">내가 얻은 특종 정보 (나만 보임)</div>
+        <div class="helpText" data-i18n="my_insider_title" style="margin-top:0;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;">내가 얻은 특종 정보 (나만 보임)</div>
         <div id="myInsiderList" style="margin-top:.5rem;"></div>
-        <div class="helpText" style="margin-top:1.2rem;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;">시장 속보 히스토리</div>
+        <div class="helpText" data-i18n="news_history_title" style="margin-top:1.2rem;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;">시장 속보 히스토리</div>
         <div id="newsHistoryList" style="margin-top:.5rem;"></div>
       </div>
 
@@ -618,11 +625,11 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
         <div style="overflow-x:auto;">
           <table class="standings" id="standingsTable"></table>
         </div>
-        <div class="helpText" style="margin-top:1.1rem;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;">전체 보유 종목</div>
+        <div class="helpText" data-i18n="all_holdings_title" style="margin-top:1.1rem;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;">전체 보유 종목</div>
         <div style="overflow-x:auto;margin-top:.4rem;">
           <table class="standings" id="holdingsTable"></table>
         </div>
-        <div class="helpText" style="margin-top:1.1rem;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;">전체 공매도 현황</div>
+        <div class="helpText" data-i18n="all_shorts_title" style="margin-top:1.1rem;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;">전체 공매도 현황</div>
         <div style="overflow-x:auto;margin-top:.4rem;">
           <table class="standings" id="shortsTable"></table>
         </div>
@@ -635,8 +642,8 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
       <div class="tabPane" id="pane-chat">
         <div id="chatList" class="chatList"></div>
         <div class="chatInputRow">
-          <input type="text" id="chatInput" placeholder="메시지 입력..." maxlength="200">
-          <button class="actionBtn gold" id="chatSendBtn">전송</button>
+          <input type="text" id="chatInput" data-i18n-placeholder="chat_placeholder" placeholder="메시지 입력..." maxlength="200">
+          <button class="actionBtn gold" id="chatSendBtn" data-i18n="chat_send_btn">전송</button>
         </div>
       </div>
     </div>
@@ -657,55 +664,110 @@ window.addEventListener('unhandledrejection', e=>{
 });
 
 /* ============ DATA ============ */
-const COMPANIES = [
-  {id:'samsung', name:'삼성전자',        color:'#4d7cff', base:52000},
-  {id:'hynix',   name:'SK하이닉스',      color:'#ff6b81', base:41000},
-  {id:'naver',   name:'네이버',          color:'#22b8b0', base:23000},
-  {id:'kakao',   name:'카카오',          color:'#f5cb42', base:14000},
-  {id:'hyundai', name:'현대차',          color:'#8a94a6', base:31000},
-  {id:'lges',    name:'LG에너지솔루션',  color:'#ff4d8d', base:47000},
-  {id:'apple',   name:'애플',            color:'#d8dee6', base:36000},
-  {id:'tesla',   name:'테슬라',          color:'#ff3b3b', base:62000},
-  {id:'nvidia',  name:'엔비디아',        color:'#8fd400', base:58000},
-  {id:'amazon',  name:'아마존',          color:'#ff9900', base:39000},
+// Two stock rosters (mirrors gameLogic.js exactly, including array order — the server
+// only ever sends {companyId, newsId, pct}, and these local copies are how the client
+// turns that back into a name/headline in whichever display language is selected).
+// `market` decides which one a given room actually uses; 'kr' keeps all 10 original
+// Korean-market names, 'us' keeps Samsung/SK Hynix but swaps the other four Korea-only
+// names for widely-recognized US market leaders.
+const COMPANIES_KR = [
+  {id:'samsung', name:'삼성전자',        nameEn:'Samsung Electronics',  color:'#4d7cff', base:52000},
+  {id:'hynix',   name:'SK하이닉스',      nameEn:'SK Hynix',             color:'#ff6b81', base:41000},
+  {id:'naver',   name:'네이버',          nameEn:'Naver',                color:'#22b8b0', base:23000},
+  {id:'kakao',   name:'카카오',          nameEn:'Kakao',                color:'#f5cb42', base:14000},
+  {id:'hyundai', name:'현대차',          nameEn:'Hyundai Motor',        color:'#8a94a6', base:31000},
+  {id:'lges',    name:'LG에너지솔루션',  nameEn:'LG Energy Solution',   color:'#ff4d8d', base:47000},
+  {id:'apple',   name:'애플',            nameEn:'Apple',                color:'#d8dee6', base:36000},
+  {id:'tesla',   name:'테슬라',          nameEn:'Tesla',                color:'#ff3b3b', base:62000},
+  {id:'nvidia',  name:'엔비디아',        nameEn:'NVIDIA',               color:'#8fd400', base:58000},
+  {id:'amazon',  name:'아마존',          nameEn:'Amazon',               color:'#ff9900', base:39000},
+];
+const COMPANIES_US = [
+  {id:'samsung',   name:'삼성전자',       nameEn:'Samsung Electronics',  color:'#4d7cff', base:52000},
+  {id:'hynix',     name:'SK하이닉스',     nameEn:'SK Hynix',             color:'#ff6b81', base:41000},
+  {id:'microsoft', name:'마이크로소프트', nameEn:'Microsoft',            color:'#22b8b0', base:44000},
+  {id:'google',    name:'구글',           nameEn:'Alphabet (Google)',    color:'#f5cb42', base:38000},
+  {id:'meta',      name:'메타',           nameEn:'Meta',                 color:'#8a94a6', base:33000},
+  {id:'netflix',   name:'넷플릭스',       nameEn:'Netflix',              color:'#ff4d8d', base:47000},
+  {id:'apple',     name:'애플',           nameEn:'Apple',                color:'#d8dee6', base:36000},
+  {id:'tesla',     name:'테슬라',         nameEn:'Tesla',                color:'#ff3b3b', base:62000},
+  {id:'nvidia',    name:'엔비디아',       nameEn:'NVIDIA',               color:'#8fd400', base:58000},
+  {id:'amazon',    name:'아마존',         nameEn:'Amazon',               color:'#ff9900', base:39000},
 ];
 
-const NEWS_POOL = [
-  {c:'samsung', h:'삼성전자, 차세대 파운드리 초격차 기술 공개', pct:14},
-  {c:'hynix',   h:'SK하이닉스, HBM 대량 공급 계약 체결', pct:16},
-  {c:'naver',   h:'네이버, AI 검색 서비스 대규모 장애 발생', pct:-12},
-  {c:'kakao',   h:'카카오, 임원진 횡령 의혹 검찰 수사 착수', pct:-18},
-  {c:'hyundai', h:'현대차, 미국 신공장 목표 초과 달성', pct:10},
-  {c:'lges',    h:'LG에너지솔루션, 배터리 화재로 리콜 사태', pct:-15},
-  {c:'apple',   h:'애플, 신제품 사전예약 역대 최고 기록', pct:12},
-  {c:'tesla',   h:'테슬라, CEO 돌발 발언에 주가 요동', pct:-10},
-  {c:'nvidia',  h:'엔비디아, 차세대 GPU 수요 폭발적 증가', pct:20},
-  {c:'amazon',  h:'아마존, 물류센터 파업 확산', pct:-8},
-  {c:'samsung', h:'삼성전자, 반도체 가격 담합 과징금 부과', pct:-11},
-  {c:'hynix',   h:'SK하이닉스, 공장 정전 사고로 생산 차질', pct:-9},
-  {c:'naver',   h:'네이버, 해외 시장 점유율 1위 등극', pct:11},
-  {c:'kakao',   h:'카카오, 신규 플랫폼 이용자 급증', pct:9},
-  {c:'hyundai', h:'현대차, 대규모 차량 결함 리콜 발표', pct:-13},
-  {c:'lges',    h:'LG에너지솔루션, 북미 배터리 공장 추가 수주', pct:15},
-  {c:'apple',   h:'애플, 반독점 소송 패소', pct:-14},
-  {c:'tesla',   h:'테슬라, 완전자율주행 규제 승인 획득', pct:19},
-  {c:'nvidia',  h:'엔비디아, 수출 규제로 매출 전망 하향', pct:-16},
-  {c:'amazon',  h:'아마존, 클라우드 부문 사상 최대 실적', pct:13},
-  {c:null, h:'[시장 전체] 기준금리 전격 인상 발표', pct:-6},
-  {c:null, h:'[시장 전체] 글로벌 훈풍, 투자 심리 회복', pct:7},
-  {c:null, h:'[시장 전체] 환율 급등, 수출주 동반 강세', pct:5},
-  {c:null, h:'[시장 전체] 인플레이션 공포, 증시 전반 하락', pct:-8},
-  {c:null, h:'[국제정세] 미-중 반도체 수출 규제 전면 강화', pct:-9},
-  {c:null, h:'[국제정세] 미중 무역 협상 극적 타결', pct:8},
-  {c:'hyundai', h:'[국제정세] 중동 지정학적 긴장 고조, 국제 유가 급등', pct:-9},
-  {c:null, h:'[국제정세] 미 연준(Fed), 기준금리 동결 발표', pct:6},
-  {c:null, h:'[국제정세] 미 연준, 예상 밖 전격 금리 인상', pct:-7},
-  {c:'amazon', h:'[국제정세] 글로벌 해상 물류 대란 재점화', pct:-10},
-  {c:null, h:'[국제정세] 달러 초강세, 신흥국 자금 대량 이탈', pct:-6},
-  {c:null, h:'[국제정세] 지정학적 리스크 완화, 글로벌 증시 안도랠리', pct:7},
-  {c:'lges', h:'[국제정세] 미국, 친환경차 보조금 대폭 확대 발표', pct:12},
-  {c:'nvidia', h:'[국제정세] 첨단 AI 반도체 대중 수출 일부 허용 합의', pct:15},
-];
+const NEWS_POOL_KR = [
+  {c:'samsung', h:'삼성전자, 차세대 파운드리 초격차 기술 공개', hEn:'Samsung Electronics unveils next-gen foundry breakthrough', pct:14},
+  {c:'hynix',   h:'SK하이닉스, HBM 대량 공급 계약 체결', hEn:'SK Hynix signs major HBM supply deal', pct:16},
+  {c:'naver',   h:'네이버, AI 검색 서비스 대규모 장애 발생', hEn:'Naver hit by major AI search service outage', pct:-12},
+  {c:'kakao',   h:'카카오, 임원진 횡령 의혹 검찰 수사 착수', hEn:'Kakao executives face embezzlement investigation', pct:-18},
+  {c:'hyundai', h:'현대차, 미국 신공장 목표 초과 달성', hEn:'Hyundai Motor beats new US plant targets', pct:10},
+  {c:'lges',    h:'LG에너지솔루션, 배터리 화재로 리콜 사태', hEn:'LG Energy Solution recalls batteries after fires', pct:-15},
+  {c:'apple',   h:'애플, 신제품 사전예약 역대 최고 기록', hEn:'Apple sets all-time pre-order record for new product', pct:12},
+  {c:'tesla',   h:'테슬라, CEO 돌발 발언에 주가 요동', hEn:'Tesla stock swings on CEO’s surprise remarks', pct:-10},
+  {c:'nvidia',  h:'엔비디아, 차세대 GPU 수요 폭발적 증가', hEn:'NVIDIA sees explosive demand for next-gen GPUs', pct:20},
+  {c:'amazon',  h:'아마존, 물류센터 파업 확산', hEn:'Amazon warehouse strikes spread', pct:-8},
+  {c:'samsung', h:'삼성전자, 반도체 가격 담합 과징금 부과', hEn:'Samsung Electronics fined for chip price collusion', pct:-11},
+  {c:'hynix',   h:'SK하이닉스, 공장 정전 사고로 생산 차질', hEn:'SK Hynix production disrupted by plant power outage', pct:-9},
+  {c:'naver',   h:'네이버, 해외 시장 점유율 1위 등극', hEn:'Naver takes #1 share in overseas market', pct:11},
+  {c:'kakao',   h:'카카오, 신규 플랫폼 이용자 급증', hEn:'Kakao sees surge of users on new platform', pct:9},
+  {c:'hyundai', h:'현대차, 대규모 차량 결함 리콜 발표', hEn:'Hyundai Motor announces major vehicle recall', pct:-13},
+  {c:'lges',    h:'LG에너지솔루션, 북미 배터리 공장 추가 수주', hEn:'LG Energy Solution wins new North America plant order', pct:15},
+  {c:'apple',   h:'애플, 반독점 소송 패소', hEn:'Apple loses antitrust lawsuit', pct:-14},
+  {c:'tesla',   h:'테슬라, 완전자율주행 규제 승인 획득', hEn:'Tesla wins regulatory approval for full self-driving', pct:19},
+  {c:'nvidia',  h:'엔비디아, 수출 규제로 매출 전망 하향', hEn:'NVIDIA cuts revenue outlook on export controls', pct:-16},
+  {c:'amazon',  h:'아마존, 클라우드 부문 사상 최대 실적', hEn:'Amazon posts record-breaking cloud earnings', pct:13},
+  {c:null, h:'[시장 전체] 기준금리 전격 인상 발표', hEn:'[Market-wide] Surprise interest rate hike announced', pct:-6},
+  {c:null, h:'[시장 전체] 글로벌 훈풍, 투자 심리 회복', hEn:'[Market-wide] Global tailwinds lift investor sentiment', pct:7},
+  {c:null, h:'[시장 전체] 환율 급등, 수출주 동반 강세', hEn:'[Market-wide] Exchange rate surges, exporters rally', pct:5},
+  {c:null, h:'[시장 전체] 인플레이션 공포, 증시 전반 하락', hEn:'[Market-wide] Inflation fears drag the whole market down', pct:-8},
+  {c:null, h:'[국제정세] 미-중 반도체 수출 규제 전면 강화', hEn:'[Global] US-China chip export controls tighten sharply', pct:-9},
+  {c:null, h:'[국제정세] 미중 무역 협상 극적 타결', hEn:'[Global] US-China trade talks reach dramatic breakthrough', pct:8},
+  {c:'hyundai', h:'[국제정세] 중동 지정학적 긴장 고조, 국제 유가 급등', hEn:'[Global] Middle East tensions rise, oil prices spike', pct:-9},
+  {c:null, h:'[국제정세] 미 연준(Fed), 기준금리 동결 발표', hEn:'[Global] The Fed holds interest rates steady', pct:6},
+  {c:null, h:'[국제정세] 미 연준, 예상 밖 전격 금리 인상', hEn:'[Global] The Fed delivers surprise rate hike', pct:-7},
+  {c:'amazon', h:'[국제정세] 글로벌 해상 물류 대란 재점화', hEn:'[Global] Global shipping logjam flares up again', pct:-10},
+  {c:null, h:'[국제정세] 달러 초강세, 신흥국 자금 대량 이탈', hEn:'[Global] Dollar surges, capital flees emerging markets', pct:-6},
+  {c:null, h:'[국제정세] 지정학적 리스크 완화, 글로벌 증시 안도랠리', hEn:'[Global] Geopolitical risk eases, markets stage relief rally', pct:7},
+  {c:'lges', h:'[국제정세] 미국, 친환경차 보조금 대폭 확대 발표', hEn:'[Global] US announces major EV subsidy expansion', pct:12},
+  {c:'nvidia', h:'[국제정세] 첨단 AI 반도체 대중 수출 일부 허용 합의', hEn:'[Global] Deal partially eases AI chip export limits to China', pct:15},
+].map((card,i)=>({...card, id:i}));
+
+const NEWS_POOL_US = [
+  {c:'samsung',   h:'삼성전자, 차세대 파운드리 초격차 기술 공개', hEn:'Samsung Electronics unveils next-gen foundry breakthrough', pct:14},
+  {c:'hynix',     h:'SK하이닉스, HBM 대량 공급 계약 체결', hEn:'SK Hynix signs major HBM supply deal', pct:16},
+  {c:'microsoft', h:'마이크로소프트, 클라우드 서비스 대규모 장애 발생', hEn:'Microsoft hit by major cloud outage', pct:-12},
+  {c:'google',    h:'구글, 반독점 소송에서 패소', hEn:'Alphabet loses major antitrust lawsuit', pct:-18},
+  {c:'meta',      h:'메타, 광고 매출 기록적 성장', hEn:'Meta posts record ad revenue growth', pct:10},
+  {c:'netflix',   h:'넷플릭스, 대규모 콘텐츠 유출 사고 발생', hEn:'Netflix suffers major content leak scandal', pct:-15},
+  {c:'apple',     h:'애플, 신제품 사전예약 역대 최고 기록', hEn:'Apple sets all-time pre-order record for new product', pct:12},
+  {c:'tesla',     h:'테슬라, CEO 돌발 발언에 주가 요동', hEn:'Tesla stock swings on CEO’s surprise remarks', pct:-10},
+  {c:'nvidia',    h:'엔비디아, 차세대 GPU 수요 폭발적 증가', hEn:'NVIDIA sees explosive demand for next-gen GPUs', pct:20},
+  {c:'amazon',    h:'아마존, 물류센터 파업 확산', hEn:'Amazon warehouse strikes spread', pct:-8},
+  {c:'samsung',   h:'삼성전자, 반도체 가격 담합 과징금 부과', hEn:'Samsung Electronics fined for chip price collusion', pct:-11},
+  {c:'hynix',     h:'SK하이닉스, 공장 정전 사고로 생산 차질', hEn:'SK Hynix production disrupted by plant power outage', pct:-9},
+  {c:'microsoft', h:'마이크로소프트, AI 코파일럿 기업 채택률 사상 최고', hEn:'Microsoft posts record enterprise adoption of AI Copilot', pct:11},
+  {c:'google',    h:'구글, 제미나이 AI 사용자 급증', hEn:'Google sees surging adoption of Gemini AI', pct:9},
+  {c:'meta',      h:'메타, 개인정보 유출 사고로 거센 비판', hEn:'Meta faces backlash over data privacy breach', pct:-13},
+  {c:'netflix',   h:'넷플릭스, 가입자 수 역대 최대 증가', hEn:'Netflix adds subscribers at record pace', pct:15},
+  {c:'apple',     h:'애플, 반독점 소송 패소', hEn:'Apple loses antitrust lawsuit', pct:-14},
+  {c:'tesla',     h:'테슬라, 완전자율주행 규제 승인 획득', hEn:'Tesla wins regulatory approval for full self-driving', pct:19},
+  {c:'nvidia',    h:'엔비디아, 수출 규제로 매출 전망 하향', hEn:'NVIDIA cuts revenue outlook on export controls', pct:-16},
+  {c:'amazon',    h:'아마존, 클라우드 부문 사상 최대 실적', hEn:'Amazon posts record-breaking cloud earnings', pct:13},
+  {c:null, h:'[시장 전체] 기준금리 전격 인상 발표', hEn:'[Market-wide] Surprise interest rate hike announced', pct:-6},
+  {c:null, h:'[시장 전체] 글로벌 훈풍, 투자 심리 회복', hEn:'[Market-wide] Global tailwinds lift investor sentiment', pct:7},
+  {c:null, h:'[시장 전체] 환율 급등, 수출주 동반 강세', hEn:'[Market-wide] Exchange rate surges, exporters rally', pct:5},
+  {c:null, h:'[시장 전체] 인플레이션 공포, 증시 전반 하락', hEn:'[Market-wide] Inflation fears drag the whole market down', pct:-8},
+  {c:null, h:'[국제정세] 미-중 반도체 수출 규제 전면 강화', hEn:'[Global] US-China chip export controls tighten sharply', pct:-9},
+  {c:null, h:'[국제정세] 미중 무역 협상 극적 타결', hEn:'[Global] US-China trade talks reach dramatic breakthrough', pct:8},
+  {c:'meta',    h:'[국제정세] 유럽연합, 빅테크 규제 대폭 강화', hEn:'[Global] EU sharply tightens Big Tech regulation', pct:-9},
+  {c:null, h:'[국제정세] 미 연준(Fed), 기준금리 동결 발표', hEn:'[Global] The Fed holds interest rates steady', pct:6},
+  {c:null, h:'[국제정세] 미 연준, 예상 밖 전격 금리 인상', hEn:'[Global] The Fed delivers surprise rate hike', pct:-7},
+  {c:'amazon', h:'[국제정세] 글로벌 해상 물류 대란 재점화', hEn:'[Global] Global shipping logjam flares up again', pct:-10},
+  {c:null, h:'[국제정세] 달러 초강세, 신흥국 자금 대량 이탈', hEn:'[Global] Dollar surges, capital flees emerging markets', pct:-6},
+  {c:null, h:'[국제정세] 지정학적 리스크 완화, 글로벌 증시 안도랠리', hEn:'[Global] Geopolitical risk eases, markets stage relief rally', pct:7},
+  {c:'netflix', h:'[국제정세] 글로벌 스트리밍 저작권 규제 완화 합의', hEn:'[Global] Deal eases global streaming content licensing rules', pct:12},
+  {c:'nvidia', h:'[국제정세] 첨단 AI 반도체 대중 수출 일부 허용 합의', hEn:'[Global] Deal partially eases AI chip export limits to China', pct:15},
+].map((card,i)=>({...card, id:i}));
 
 const PLAYER_COLORS = ['#3987e5','#d95926','#199e70','#c98500'];
 const PLAYER_TOKENS = ['🐰','🦊','🐱','🐶'];
@@ -770,9 +832,456 @@ try{
 }catch(e){ CLIENT_ID = genId(); }
 const NET = { ws:null, roomId:null, myName:null, youAreHost:false };
 
-function fmt(n){ return Math.round(n).toLocaleString('ko-KR')+'원'; }
+/* ============ I18N ============ */
+let LANG = 'ko';
+try{
+  const saved = localStorage.getItem('jujak_lang');
+  LANG = saved || ((navigator.language||'').toLowerCase().startsWith('ko') ? 'ko' : 'en');
+}catch(e){ LANG = 'ko'; }
+
+function fmt(n){
+  const v = Math.round(n).toLocaleString(LANG==='en' ? 'en-US' : 'ko-KR');
+  return LANG==='en' ? ('$'+v) : (v+'원');
+}
 function pctStr(n){ return (n>=0?'+':'')+n.toFixed(1)+'%'; }
 function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+// The active room decides its own stock roster ('kr' or 'us', set once at game start
+// and carried in G.market) independently of each viewer's personal display language.
+function activeCompanies(){ return (G && G.market==='us') ? COMPANIES_US : COMPANIES_KR; }
+function activeNewsPool(){ return (G && G.market==='us') ? NEWS_POOL_US : NEWS_POOL_KR; }
+function companyName(id){
+  const c = activeCompanies().find(x=>x.id===id);
+  if(!c) return id;
+  return LANG==='en' ? c.nameEn : c.name;
+}
+// Reconstructs a news card's display text from the structured {newsId, companyId, pct}
+// the server sends, instead of relying on pre-rendered Korean sentences.
+function newsHeadline(newsId){
+  const card = activeNewsPool()[newsId];
+  if(!card) return '';
+  return LANG==='en' ? card.hEn : card.h;
+}
+function newsTargetLabel(companyId){
+  if(!companyId) return t('news_target_market');
+  return companyName(companyId);
+}
+function newsDetailText(companyId, pct){
+  if(companyId){
+    return LANG==='en' ? (companyName(companyId)+' shares '+pctStr(pct)) : (companyName(companyId)+' 주가 '+pctStr(pct));
+  }
+  return LANG==='en' ? ('Market-wide average '+pctStr(pct)) : ('시장 전체 평균 '+pctStr(pct));
+}
+
+function t(key, vars){
+  const dict = T[LANG] || T.ko;
+  const entry = (key in dict) ? dict[key] : T.ko[key];
+  if(entry===undefined) return key;
+  return (typeof entry==='function') ? entry(vars||{}) : entry;
+}
+
+function setLang(lang){
+  if(lang!==LANG){
+    LANG = lang;
+    try{ localStorage.setItem('jujak_lang', lang); }catch(e){}
+  }
+  document.documentElement.lang = lang;
+  applyStaticI18n();
+  updateLangToggleBtn();
+  // If the name field still holds an untouched default (either language's), swap it to
+  // match the newly selected language instead of leaving a stale-looking placeholder --
+  // but never touch it if the player has actually typed their own name in.
+  const defaultNames = [T.ko.default_name_host, T.en.default_name_host, T.ko.default_name_investor, T.en.default_name_investor];
+  const createInput = document.getElementById('createNameInput');
+  if(createInput && defaultNames.includes(createInput.value)) createInput.value = t('default_name_host');
+  const joinInput = document.getElementById('joinNameInput');
+  if(joinInput && defaultNames.includes(joinInput.value)) joinInput.value = t('default_name_investor');
+  renderLengthChoice();
+  renderLobby();
+  if(G){ buildBoard(); renderAll(); }
+}
+function updateLangToggleBtn(){
+  const btn = document.getElementById('langToggleBtn');
+  if(btn) btn.textContent = LANG==='ko' ? 'EN' : '한국어';
+}
+// Walks every element carrying a data-i18n* attribute and fills in the current
+// language's text. Covers everything that's static markup rather than JS-rendered.
+function applyStaticI18n(){
+  document.title = t('page_title');
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el=>{ el.innerHTML = t(el.dataset.i18nHtml); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{ el.placeholder = t(el.dataset.i18nPlaceholder); });
+}
+
+const RULES_HTML_KO =
+  '<h4>목표</h4>'+
+  '<p>정해진 턴이 모두 끝나면 <b>순자산</b>(현금 + 주식 평가액 − 대출 − 공매도 평가손실)이 가장 높은 플레이어가 승리합니다.</p>'+
+  '<h4>시작하기</h4>'+
+  '<p>한 명이 "방 만들기"로 호스트가 되어 초대 링크를 만들고, 그 링크로 최대 3명이 더 참가할 수 있습니다(최대 4명). 각자 시드머니 <b>100만원</b>으로 시작합니다.</p>'+
+  '<h4>턴 진행</h4>'+
+  '<p>자기 차례에 주사위를 굴려 보드를 이동합니다. 한 턴은 <b>90초</b> 제한이 있고, 시간 안에 행동하지 않으면 자동으로 주사위를 굴리고 턴이 넘어갑니다.</p>'+
+  '<h4>보드 칸</h4>'+
+  '<p><b>월급날</b> — 급여 20만원 지급 · <b>기업 칸</b> — 보유 중이면 배당금 지급 · <b>속보 칸</b> — 뉴스 카드가 즉시 발동되어 주가 변동 · <b>정보원 칸</b> — 이번 턴에 한해 특종 정보 열람 가능 · <b>은행 칸</b> — 이자 캐시백 지급</p>'+
+  '<h4>거래소</h4>'+
+  '<p>자기 차례에 아무 종목이나 매수/매도할 수 있습니다. 매수하면 그 종목 가격이 오르고 매도하면 내려갑니다 — 실제 시장처럼 내 거래가 가격에 영향을 줍니다. "최대" 버튼으로 가진 돈만큼 한 번에 살 수 있습니다.</p>'+
+  '<h4>공매도</h4>'+
+  '<p>하락에 베팅하는 기능입니다. "공매도"로 진입하면 즉시 현금을 받고, 나중에 "상환"으로 다시 사서 갚아야 합니다. 진입가보다 가격이 떨어지면 이득, 오르면 손해입니다.</p>'+
+  '<h4>레버리지(대출)</h4>'+
+  '<p>순자산의 최대 <b>2배</b>까지 대출받아 매수·공매도 자금으로 쓸 수 있습니다. <b>5턴마다 5%</b> 이자가 자동으로 부과되며, 부과 1턴 전에 예고 알림이 뜹니다.</p>'+
+  '<h4>특종 정보(내부자 정보)</h4>'+
+  '<p>정보원 칸에 도착하면 비용을 내고 다음에 터질 뉴스를 미리 볼 수 있습니다. 단, 15% 확률로 적발되어 벌금을 물 수 있습니다. 받은 정보는 "뉴스/정보" 탭에서 다시 볼 수 있습니다.</p>'+
+  '<h4>반대매매(마진콜)</h4>'+
+  '<p>순자산이 마이너스가 되면 보유 주식과 공매도 포지션이 페널티(10%)와 함께 강제로 정리됩니다. 위험 구간(순자산이 레버리지 노출의 20% 미만)에 들어서면 미리 경고 알림이 뜹니다.</p>'+
+  '<h4>승리</h4>'+
+  '<p>설정한 턴 수가 모두 끝나면 그 시점의 순자산 1위가 최종 승자입니다.</p>';
+
+const RULES_HTML_EN =
+  '<h4>Goal</h4>'+
+  '<p>When all turns are over, whoever has the highest <b>net worth</b> (cash + stock value − loans − short-position losses) wins.</p>'+
+  '<h4>Getting Started</h4>'+
+  '<p>One player becomes the host by tapping "Create Room," which generates an invite link. Up to 3 more players can join with that link (4 max). Everyone starts with <b>$1,000,000</b> in seed money.</p>'+
+  '<h4>Taking a Turn</h4>'+
+  '<p>On your turn, roll the dice to move around the board. Each turn has a <b>90-second</b> limit — if you don\'t act in time, the dice roll automatically and your turn ends.</p>'+
+  '<h4>Board Tiles</h4>'+
+  '<p><b>Payday</b> — pays a $200,000 salary · <b>Company tiles</b> — pay a dividend if you hold that stock · <b>News tiles</b> — instantly trigger a news card that moves a stock price · <b>Insider tiles</b> — lets you view exclusive intel for this turn only · <b>Bank tiles</b> — pays an interest cashback</p>'+
+  '<h4>Market</h4>'+
+  '<p>On your turn you can buy or sell any stock. Buying pushes that stock\'s price up, selling pushes it down — your trades move the market, just like real life. Use the "Max" button to buy as much as you can afford in one go.</p>'+
+  '<h4>Short Selling</h4>'+
+  '<p>A way to bet on a price drop. "Short" instantly gives you cash; later you must "Cover" by buying the shares back to return them. You profit if the price falls below your entry price, and lose if it rises.</p>'+
+  '<h4>Leverage (Loans)</h4>'+
+  '<p>You can borrow up to <b>2x</b> your net worth to fund buys or shorts. <b>5%</b> interest is automatically charged every <b>5 turns</b>, with a warning one turn before it hits.</p>'+
+  '<h4>Exclusive Intel (Insider Info)</h4>'+
+  '<p>Landing on an Insider tile lets you pay to preview the next news card before it hits. There\'s a 15% chance you get caught and fined instead. Intel you\'ve received stays viewable in the "News/Intel" tab.</p>'+
+  '<h4>Margin Calls</h4>'+
+  '<p>If your net worth goes negative, your stock holdings and short positions get force-liquidated with a 10% penalty. You\'ll get an early warning once you enter the risk zone (net worth under 20% of your leveraged exposure).</p>'+
+  '<h4>Winning</h4>'+
+  '<p>Once all turns are complete, whoever has the highest net worth at that moment wins.</p>';
+
+const T = { ko:{}, en:{} };
+
+T.ko = {
+  app_sub: 'Insider Trading Board Game · 2–4인용 실시간 온라인 보드게임',
+  rules_btn: '게임 방법',
+  ticker_placeholder: '시장 개장 준비 중…',
+  page_title: '주가조작단 — 트레이딩 보드게임',
+  create_title: '새 게임 만들기',
+  create_title_small: '호스트',
+  name_placeholder: '당신의 이름',
+  game_length_label: '게임 길이',
+  length_short: '짧게', length_normal: '보통', length_long: '길게',
+  length_option: v => v.label+' · 1인당 '+v.turns+'턴',
+  create_invite_help: '방을 만들면 초대 링크가 생성됩니다. 그 링크를 최대 3명의 친구에게 보내면, 각자 자기 스마트폰이나 PC로 접속해서 함께 실시간으로 플레이할 수 있습니다.',
+  create_room_btn: '방 만들기',
+  quickmatch_btn: '🎲 무작위로 매칭하기',
+  quickmatch_help: '무작위 매칭은 모르는 사람과 한 방에서 플레이해요. 닉네임과 채팅이 상대방에게 그대로 보이니 개인정보는 적지 말아 주세요. 불편한 상대는 채팅에서 신고할 수 있어요.',
+  practice_btn: '🎓 연습으로 먼저 해보기 (혼자 2턴)',
+  practice_help: '주식이 처음이라면 이걸로 시작해보세요. 혼자서 딱 2턴만 짧게 플레이하며 매수·매도·공매도를 가볍게 체험할 수 있어요.',
+  join_title: '게임 참가하기',
+  join_help: '초대 링크로 들어오셨습니다. 이름을 입력하고 참가 버튼을 누르세요.',
+  join_btn: '참가하기',
+  lobby_title: '대기실',
+  invite_help: '아래 링크를 친구에게 공유하세요 (최대 4명, 본인 포함):',
+  copy_btn: '복사', copy_done: '복사됨!',
+  bot_add_label: 'AI 플레이어 추가:',
+  waiting_host_text: '호스트가 게임을 시작하면 자동으로 게임 화면으로 전환됩니다.',
+  host_tag: '호스트', guest_tag: '참가자',
+  waiting_for_players: '참가자를 기다리는 중…',
+  bot_option_label: v => v.n+'명',
+  start_game_btn_bots: v => '게임 시작 ('+v.count+'명 + AI '+v.botCount+'명)',
+  start_game_btn_solo: v => '혼자 시작하기 ('+v.count+'/4명)',
+  start_game_btn_normal: v => '게임 시작 ('+v.count+'/4명)',
+  disclaimer: '본 게임은 가상의 재화로 진행되는 시뮬레이션 보드게임이며, 실제 금융 상품·투자 자문과 무관합니다.',
+  privacy_link: '개인정보처리방침',
+  default_name_host: '호스트', default_name_investor: '투자자', default_name_practice: '연습생',
+
+  status_ready_create: '방을 만들 준비가 되었습니다.',
+  status_ready_join: '참가할 준비가 되었습니다.',
+  status_reconnecting_prev: '이전 대기실에 다시 접속하는 중…',
+  status_connecting: '연결 서버에 접속 중…',
+  status_reconnecting: v => '재연결 시도 중… ('+v.n+')',
+  status_disconnected_retry: v => '연결이 끊어졌습니다. 재연결 시도 중… ('+v.n+'/8)',
+  status_disconnected_final: '서버와 연결이 끊어졌습니다. 앱을 완전히 종료했다가 다시 열어 주세요.',
+  status_quickmatch_searching: '빈 방을 찾는 중…',
+  status_quickmatch_fail: '매칭 서버에 연결할 수 없습니다. 다시 시도해 주세요.',
+  status_report_done: '신고가 접수되었고, 이 사람을 자동으로 차단했습니다.',
+  err_already_started: '이미 게임이 시작되어 참가할 수 없습니다.',
+
+  tab_trade: '거래소', tab_short: '공매도', tab_news: '뉴스/정보',
+  tab_finance: '금융센터', tab_rank: '순위', tab_log: '중계', tab_chat: '채팅',
+
+  my_holding_line: v => '내 보유 <b>'+v.qty+'주</b> · 평가액 <b>'+v.value+'</b>'+(v.pl? ' · 평단가 <b>'+v.avg+'</b> · <span class="sc-delta '+v.plDir+'">'+v.plArrow+' '+v.plPct+'</span>' : ''),
+  my_short_line: v => '내 공매도 <b>'+v.qty+'주</b> · 상환 필요액 <b>'+v.value+'</b>'+(v.pl? ' · 평단가 <b>'+v.avg+'</b> · <span class="sc-delta '+v.plDir+'">'+v.plArrow+' '+v.plPct+'</span>' : ''),
+  buy_btn: '매수', sell_btn: '매도', max_btn: '최대',
+  max_btn_title_buy: '가진 돈으로 살 수 있는 최대 수량',
+  short_btn: '공매도', cover_btn: '상환',
+  max_btn_title_short: '레버리지 한도 내 최대 공매도 수량',
+  short_intro: v => '하락에 베팅합니다. 주식을 빌려 지금 가격에 팔고(진입), 나중에 다시 사서(상환) 갚습니다 — 가격이 떨어질수록 이득, 오를수록 손해입니다. 진입 한도는 순자산의 '+v.mult+'배까지입니다.',
+
+  finance_cash: '보유 현금', finance_loan: '대출 잔액', finance_portfolio: '포트폴리오 평가액',
+  finance_short_liability: '공매도 상환 필요액', finance_networth: '순자산',
+  finance_loan_room: v => '추가 대출 가능액 (순자산 대비 '+v.mult+'배 한도)',
+  finance_interest_rate_label: '대출 이자율',
+  finance_interest_rate_value: v => '5% · 5턴마다 부과 (다음 정산: 턴 '+v.nextTurn+')',
+  loan_amount_placeholder: '금액',
+  borrow_btn: '대출 실행', repay_btn: '상환',
+  insider_used_btn: '이번 턴 정보 취재 완료',
+  insider_available_btn: v => '특종 정보 열람 (비용 '+v.cost+')',
+  insider_unavailable_btn: '정보원 타일에서만 이용 가능',
+
+  rank_header: '순위', investor_header: '투자자', cash_header: '현금', loan_header: '대출',
+  networth_header: '순자산', lap_header: 'Lap', stock_header: '종목',
+  me_suffix: ' (나)',
+  all_holdings_title: '전체 보유 종목', all_shorts_title: '전체 공매도 현황',
+
+  my_insider_title: '내가 얻은 특종 정보 (나만 보임)',
+  news_history_title: '시장 속보 히스토리',
+  no_insider_yet: '아직 취재한 특종 정보가 없습니다. 정보원 타일에 도착하면 열람할 수 있어요.',
+  no_news_yet: '아직 발생한 속보가 없습니다.',
+  turn_label_short: v => '턴 '+v.n,
+  caught_title: '적발됨',
+  caught_detail: v => '취재 비용 '+fmt(v.cost)+' + 벌금 '+fmt(v.fine),
+  insider_history_detail: v => '대상: '+v.target+' · 예상 변동 '+v.dir+' '+pctStr(v.pct)+' · 비용 '+fmt(v.cost),
+
+  chat_placeholder: '메시지 입력...', chat_send_btn: '전송',
+  chat_empty: '아직 채팅이 없습니다. 첫 메시지를 보내보세요!',
+  chat_blocked_msg: '차단한 사용자의 메시지입니다',
+  chat_unblock: '차단 해제', chat_report: '신고', chat_block: '차단',
+
+  tile_payday: '월급날', tile_news: '속보', tile_insider: '정보원', tile_bank: '은행',
+  tile_payday_name: v => '급여 '+v.salary,
+  tile_news_name: '뉴스 카드', tile_insider_name: '특종 취재', tile_bank_name: '대출/캐시백',
+  current_turn_label: '현재 차례',
+  roll_btn: '주사위 굴리기', end_turn_btn: '턴 종료',
+  turn_of: v => v.name+'님의 차례'+(v.isMe? ' — 당신 차례!':''),
+  turn_progress: v => '턴 '+v.cur+' / '+v.max+' · Lap '+v.lap,
+  turn_remaining: v => '남은 시간 '+v.n+'초',
+  turn_ending_toast: v => '⏰ '+v.n+'초 후 내 턴이 자동으로 넘어갑니다!',
+
+  header_status: v => v.count+'인 플레이 · 턴 '+v.cur+'/'+v.max,
+
+  me_label: '나:', your_turn_now: '지금 당신 차례입니다', ai_turn: '🤖 AI가 턴을 진행 중입니다',
+  waiting_other_turn: '다른 사람 차례를 기다리는 중', my_cash_label: '내 현금',
+
+  rules_kicker: '가이드 · How to Play',
+  rules_h3: '주가조작단 게임 방법',
+  rules_html: RULES_HTML_KO,
+  rules_dont_show: '다시 보지 않기', rules_close: '닫기',
+  modal_confirm: '확인',
+
+  end_kicker: '폐장 · Closing Bell',
+  end_winner: v => v.name+'님, 최종 승리!',
+  end_practice_note: '연습이 끝났어요! 처음 화면에서 "방 만들기"로 친구들과 진짜 게임을 시작해보세요.',
+
+  warning_kicker: '경고 · Risk Alert (나만 볼 수 있음)',
+  interest_warning_title: '대출 이자 예고',
+  interest_warning_modal: v => '다음 이자 정산 시 대출 잔액 '+fmt(v.loan)+'에 대해 '+fmt(v.amount)+'의 이자가 부과됩니다. 미리 상환하면 이자를 줄일 수 있습니다.',
+  margin_risk_title: '반대매매 경고',
+  margin_risk_modal: v => '순자산('+fmt(v.nw)+')이 레버리지 노출('+fmt(v.exposure)+') 대비 위험 수준까지 줄었습니다. 이대로 시세가 더 악화되면 다음 턴 이후 보유 주식이나 공매도 포지션이 강제로 정리(반대매매)될 수 있습니다. 지금 대출을 상환하거나 포지션을 줄이는 것을 권장합니다.',
+
+  insider_caught_kicker: '적발 · Compliance Alert',
+  insider_caught_title: '정보원이 미행당했습니다',
+  insider_caught_text: v => '취재 비용 '+fmt(v.cost)+'에 더해 벌금 '+fmt(v.fine)+'이 부과되었습니다. 다음엔 더 조심하세요.',
+  insider_kicker: '특종 · Insider Memo (나만 볼 수 있음)',
+  insider_target_line: v => '대상: '+v.target+' · 취재 비용 '+fmt(v.cost),
+  insider_expected_move: v => '예상 변동 '+v.dir+' '+v.pct,
+  insider_not_drawn_yet: '이 카드는 아직 뽑히지 않았습니다 — 다음 뉴스 카드로 등장할 가능성이 높습니다.',
+
+  news_kicker: '속보 · News Flash',
+  news_target_line: v => '대상: '+v.target,
+  news_target_market: '전체 시장',
+
+  log_market_open: () => '시장이 개장했습니다. 행운을 빕니다.',
+  log_margin_call: v => v.name+' 마진콜 발생! 포지션을 강제로 정리합니다.',
+  log_margin_liquidate_long: v => v.name+'의 '+companyName(v.companyId)+' '+v.qty+'주가 강제 청산되었습니다 (10% 손실).',
+  log_margin_liquidate_short: v => v.name+'의 '+companyName(v.companyId)+' 공매도 '+v.qty+'주가 강제 상환되었습니다 (10% 추가 손실).',
+  log_interest_warning: v => v.name+'님, 다음 정산에 대출 이자 '+fmt(v.amount)+'가 부과될 예정입니다.',
+  log_margin_risk_warning: v => v.name+'님, 반대매매(마진콜) 위험 구간에 진입했습니다!',
+  log_interest_charged: v => v.name+'님의 대출 이자 '+fmt(v.amount)+'가 부과되었습니다 (5턴마다 정산, 연 5%).',
+  log_payday_pass: v => v.name+'님, 월급날! +'+fmt(v.amount),
+  log_news_tile: v => '[속보] '+newsHeadline(v.newsId)+' → '+newsDetailText(v.companyId, v.pct),
+  log_insider_tile: v => v.name+'님이 정보원 타일에 도착했습니다. 이번 턴, 특종 정보를 열람할 수 있습니다.',
+  log_bank_tile: v => v.name+'님이 은행에 들러 이자 캐시백 '+fmt(v.amount)+'을 받았습니다.',
+  log_dividend: v => v.name+'님이 '+companyName(v.companyId)+' 배당금 '+fmt(v.amount)+'를 받았습니다.',
+  log_company_tile_visit: v => v.name+'님이 '+companyName(v.companyId)+' 타일에 도착했습니다.',
+  log_payday_exact: v => v.name+'님이 월급날 칸에 정확히 도착했습니다!',
+  log_cash_insufficient: () => '현금이 부족합니다.',
+  log_buy: v => v.name+'님이 '+companyName(v.companyId)+' '+v.qty+'주 매수 ('+fmt(v.cost)+', 평단 '+fmt(v.avgCost)+')',
+  log_sell_qty_exceeds: () => '보유 수량보다 많이 팔 수 없습니다.',
+  log_sell: v => v.name+'님이 '+companyName(v.companyId)+' '+v.qty+'주 매도 ('+fmt(v.proceeds)+', 손익 '+pctStr(v.plPct)+')',
+  log_short_limit_exceeded: v => '공매도 한도(레버리지 '+v.mult+'배)를 초과했습니다.',
+  log_short_enter: v => v.name+'님이 '+companyName(v.companyId)+' '+v.qty+'주 공매도 진입 (수령 '+fmt(v.proceeds)+', 평단 '+fmt(v.avgPrice)+')',
+  log_cover_qty_exceeds: () => '공매도 보유량보다 많이 상환할 수 없습니다.',
+  log_cover_cash_insufficient: () => '공매도 상환 자금이 부족합니다.',
+  log_cover: v => v.name+'님이 '+companyName(v.companyId)+' 공매도 '+v.qty+'주 상환 ('+fmt(v.cost)+', 손익 '+pctStr(v.plPct)+')',
+  log_loan_limit_exceeded: () => '레버리지 한도를 초과했습니다.',
+  log_borrow: v => v.name+'님이 '+fmt(v.amount)+' 대출(레버리지)을 실행했습니다.',
+  log_repay: v => v.name+'님이 대출 '+fmt(v.amount)+'을 상환했습니다.',
+  log_insider_caught: v => v.name+'님, 정보 취재 중 금융감독원에 적발! 벌금 '+fmt(v.fine),
+  log_insider_success: v => v.name+'님이 '+fmt(v.cost)+'을 내고 특종 정보를 입수했습니다.',
+};
+
+T.en = {
+  app_sub: 'Insider Trading Board Game · 2–4 players, real-time online',
+  rules_btn: 'How to Play',
+  ticker_placeholder: 'Preparing to open the market…',
+  page_title: 'Insider Trading Board Game — 주가조작단',
+  create_title: 'Create New Game',
+  create_title_small: 'Host',
+  name_placeholder: 'Your name',
+  game_length_label: 'Game Length',
+  length_short: 'Short', length_normal: 'Normal', length_long: 'Long',
+  length_option: v => v.label+' · '+v.turns+' turns/player',
+  create_invite_help: 'Creating a room generates an invite link. Send it to up to 3 friends, and everyone can join and play together in real time from their phone or PC.',
+  create_room_btn: 'Create Room',
+  quickmatch_btn: '🎲 Quick Match',
+  quickmatch_help: 'Quick Match puts you in a room with a stranger. Your nickname and chat are visible to them, so don\'t share personal info. You can report anyone uncomfortable from the chat tab.',
+  practice_btn: '🎓 Try a Quick Practice (solo, 2 turns)',
+  practice_help: 'New to stocks? Start here. Play a short 2-turn solo round to get a feel for buying, selling, and short-selling.',
+  join_title: 'Join Game',
+  join_help: 'You\'ve arrived via an invite link. Enter your name and tap Join.',
+  join_btn: 'Join',
+  lobby_title: 'Waiting Room',
+  invite_help: 'Share this link with friends (up to 4 players including you):',
+  copy_btn: 'Copy', copy_done: 'Copied!',
+  bot_add_label: 'Add AI players:',
+  waiting_host_text: 'The game screen will appear automatically once the host starts the game.',
+  host_tag: 'Host', guest_tag: 'Guest',
+  waiting_for_players: 'Waiting for players…',
+  bot_option_label: v => String(v.n),
+  start_game_btn_bots: v => 'Start Game ('+v.count+' + '+v.botCount+' AI)',
+  start_game_btn_solo: v => 'Start Solo ('+v.count+'/4)',
+  start_game_btn_normal: v => 'Start Game ('+v.count+'/4)',
+  disclaimer: 'This is a simulation board game using fictional currency and is unrelated to any real financial product or investment advice.',
+  privacy_link: 'Privacy Policy',
+  default_name_host: 'Host', default_name_investor: 'Investor', default_name_practice: 'Player',
+
+  status_ready_create: 'Ready to create a room.',
+  status_ready_join: 'Ready to join.',
+  status_reconnecting_prev: 'Reconnecting to your previous room…',
+  status_connecting: 'Connecting to server…',
+  status_reconnecting: v => 'Reconnecting… ('+v.n+')',
+  status_disconnected_retry: v => 'Connection lost. Reconnecting… ('+v.n+'/8)',
+  status_disconnected_final: 'Lost connection to the server. Please fully close and reopen the app.',
+  status_quickmatch_searching: 'Looking for an open room…',
+  status_quickmatch_fail: 'Couldn\'t reach the matchmaking server. Please try again.',
+  status_report_done: 'Report submitted — this player has been blocked for you.',
+  err_already_started: 'This game has already started, so you can\'t join.',
+
+  tab_trade: 'Market', tab_short: 'Shorts', tab_news: 'News', tab_finance: 'Finance',
+  tab_rank: 'Standings', tab_log: 'Feed', tab_chat: 'Chat',
+
+  my_holding_line: v => 'My holding <b>'+v.qty+' shares</b> · Value <b>'+v.value+'</b>'+(v.pl? ' · Avg <b>'+v.avg+'</b> · <span class="sc-delta '+v.plDir+'">'+v.plArrow+' '+v.plPct+'</span>' : ''),
+  my_short_line: v => 'My short <b>'+v.qty+' shares</b> · Cover cost <b>'+v.value+'</b>'+(v.pl? ' · Avg <b>'+v.avg+'</b> · <span class="sc-delta '+v.plDir+'">'+v.plArrow+' '+v.plPct+'</span>' : ''),
+  buy_btn: 'Buy', sell_btn: 'Sell', max_btn: 'Max',
+  max_btn_title_buy: 'Maximum you can afford',
+  short_btn: 'Short', cover_btn: 'Cover',
+  max_btn_title_short: 'Maximum short size within your leverage limit',
+  short_intro: v => 'Bet on a price drop. Borrow shares and sell them now (open), then buy them back later to return them (cover) — you profit if the price falls, and lose if it rises. You can open up to '+v.mult+'x your net worth.',
+
+  finance_cash: 'Cash on hand', finance_loan: 'Loan balance', finance_portfolio: 'Portfolio value',
+  finance_short_liability: 'Short cover liability', finance_networth: 'Net worth',
+  finance_loan_room: v => 'Additional loan available (up to '+v.mult+'x net worth)',
+  finance_interest_rate_label: 'Interest rate',
+  finance_interest_rate_value: v => '5% · charged every 5 turns (next: turn '+v.nextTurn+')',
+  loan_amount_placeholder: 'Amount',
+  borrow_btn: 'Take Loan', repay_btn: 'Repay',
+  insider_used_btn: 'Already used this turn',
+  insider_available_btn: v => 'View Exclusive Intel (cost '+v.cost+')',
+  insider_unavailable_btn: 'Only available on the Insider tile',
+
+  rank_header: 'Rank', investor_header: 'Player', cash_header: 'Cash', loan_header: 'Loan',
+  networth_header: 'Net Worth', lap_header: 'Lap', stock_header: 'Stock',
+  me_suffix: ' (Me)',
+  all_holdings_title: 'All Holdings', all_shorts_title: 'All Short Positions',
+
+  my_insider_title: 'My Exclusive Intel (private)',
+  news_history_title: 'Market News History',
+  no_insider_yet: 'No exclusive intel yet. You can view some when you land on the Insider tile.',
+  no_news_yet: 'No news has broken yet.',
+  turn_label_short: v => 'Turn '+v.n,
+  caught_title: 'Caught',
+  caught_detail: v => 'Intel cost '+fmt(v.cost)+' + fine '+fmt(v.fine),
+  insider_history_detail: v => 'Target: '+v.target+' · Expected move '+v.dir+' '+pctStr(v.pct)+' · Cost '+fmt(v.cost),
+
+  chat_placeholder: 'Type a message...', chat_send_btn: 'Send',
+  chat_empty: 'No messages yet. Send the first one!',
+  chat_blocked_msg: 'Message from a blocked user',
+  chat_unblock: 'Unblock', chat_report: 'Report', chat_block: 'Block',
+
+  tile_payday: 'Payday', tile_news: 'News', tile_insider: 'Insider', tile_bank: 'Bank',
+  tile_payday_name: v => 'Salary '+v.salary,
+  tile_news_name: 'News Card', tile_insider_name: 'Exclusive Intel', tile_bank_name: 'Loan/Cashback',
+  current_turn_label: 'Current Turn',
+  roll_btn: 'Roll Dice', end_turn_btn: 'End Turn',
+  turn_of: v => v.name+"'s Turn"+(v.isMe? ' — Your Turn!':''),
+  turn_progress: v => 'Turn '+v.cur+' / '+v.max+' · Lap '+v.lap,
+  turn_remaining: v => v.n+'s remaining',
+  turn_ending_toast: v => '⏰ Your turn ends automatically in '+v.n+'s!',
+
+  header_status: v => v.count+' players · Turn '+v.cur+'/'+v.max,
+
+  me_label: 'Me:', your_turn_now: 'It\'s your turn now', ai_turn: '🤖 AI is taking its turn',
+  waiting_other_turn: 'Waiting for other players', my_cash_label: 'My cash',
+
+  rules_kicker: 'Guide · How to Play',
+  rules_h3: 'How to Play',
+  rules_html: RULES_HTML_EN,
+  rules_dont_show: 'Don\'t show again', rules_close: 'Close',
+  modal_confirm: 'OK',
+
+  end_kicker: 'Closing Bell',
+  end_winner: v => v.name+' wins!',
+  end_practice_note: 'Practice round complete! Head back to the start screen and tap "Create Room" to play a real game with friends.',
+
+  warning_kicker: 'Warning · Risk Alert (private)',
+  interest_warning_title: 'Upcoming Loan Interest',
+  interest_warning_modal: v => 'At the next settlement, '+fmt(v.amount)+' interest will be charged on your '+fmt(v.loan)+' loan balance. Repay early to reduce it.',
+  margin_risk_title: 'Margin Call Warning',
+  margin_risk_modal: v => 'Your net worth ('+fmt(v.nw)+') has fallen to a risky level relative to your leveraged exposure ('+fmt(v.exposure)+'). If prices move further against you, your holdings or short positions may be force-liquidated after your next turn. Consider repaying your loan or reducing your positions now.',
+
+  insider_caught_kicker: 'Caught · Compliance Alert',
+  insider_caught_title: 'Your informant was tailed',
+  insider_caught_text: v => 'In addition to the '+fmt(v.cost)+' intel cost, you were fined '+fmt(v.fine)+'. Be more careful next time.',
+  insider_kicker: 'Scoop · Insider Memo (private)',
+  insider_target_line: v => 'Target: '+v.target+' · Cost '+fmt(v.cost),
+  insider_expected_move: v => 'Expected move '+v.dir+' '+v.pct,
+  insider_not_drawn_yet: 'This card hasn\'t been drawn yet — it\'s likely to appear as the next news card.',
+
+  news_kicker: 'Breaking News',
+  news_target_line: v => 'Target: '+v.target,
+  news_target_market: 'Entire Market',
+
+  log_market_open: () => 'The market has opened. Good luck.',
+  log_margin_call: v => v.name+' margin call! Positions are being force-liquidated.',
+  log_margin_liquidate_long: v => v.name+"'s "+v.qty+' shares of '+companyName(v.companyId)+' were force-liquidated (10% loss).',
+  log_margin_liquidate_short: v => v.name+"'s short position of "+v.qty+' shares in '+companyName(v.companyId)+' was force-covered (extra 10% loss).',
+  log_interest_warning: v => v.name+', a loan interest of '+fmt(v.amount)+' will be charged at the next settlement.',
+  log_margin_risk_warning: v => v.name+', you\'ve entered the margin call risk zone!',
+  log_interest_charged: v => v.name+"'s loan interest of "+fmt(v.amount)+' was charged (settled every 5 turns, 5% annual).',
+  log_payday_pass: v => v.name+', payday! +'+fmt(v.amount),
+  log_news_tile: v => '[Breaking] '+newsHeadline(v.newsId)+' → '+newsDetailText(v.companyId, v.pct),
+  log_insider_tile: v => v.name+' landed on the Insider tile. Exclusive intel is available this turn.',
+  log_bank_tile: v => v.name+' stopped by the bank and received a '+fmt(v.amount)+' interest cashback.',
+  log_dividend: v => v.name+' received a '+fmt(v.amount)+' dividend from '+companyName(v.companyId)+'.',
+  log_company_tile_visit: v => v.name+' landed on '+companyName(v.companyId)+'.',
+  log_payday_exact: v => v.name+' landed exactly on Payday!',
+  log_cash_insufficient: () => 'Not enough cash.',
+  log_buy: v => v.name+' bought '+v.qty+' shares of '+companyName(v.companyId)+' ('+fmt(v.cost)+', avg '+fmt(v.avgCost)+')',
+  log_sell_qty_exceeds: () => "Can't sell more than you own.",
+  log_sell: v => v.name+' sold '+v.qty+' shares of '+companyName(v.companyId)+' ('+fmt(v.proceeds)+', P/L '+pctStr(v.plPct)+')',
+  log_short_limit_exceeded: v => 'Exceeded short-selling limit (leverage '+v.mult+'x).',
+  log_short_enter: v => v.name+' opened a short on '+v.qty+' shares of '+companyName(v.companyId)+' (received '+fmt(v.proceeds)+', avg '+fmt(v.avgPrice)+')',
+  log_cover_qty_exceeds: () => "Can't cover more than your short position.",
+  log_cover_cash_insufficient: () => 'Not enough cash to cover the short.',
+  log_cover: v => v.name+' covered '+v.qty+' shorted shares of '+companyName(v.companyId)+' ('+fmt(v.cost)+', P/L '+pctStr(v.plPct)+')',
+  log_loan_limit_exceeded: () => 'Exceeded leverage limit.',
+  log_borrow: v => v.name+' took out a '+fmt(v.amount)+' loan (leverage).',
+  log_repay: v => v.name+' repaid '+fmt(v.amount)+' of their loan.',
+  log_insider_caught: v => v.name+', caught by regulators while gathering intel! Fined '+fmt(v.fine),
+  log_insider_success: v => v.name+' paid '+fmt(v.cost)+' and obtained exclusive info.',
+};
+// Renders a structured {key, vars} log/warning entry pushed by the server.
+function renderLogEntry(entry){ return t('log_'+entry.key, entry.vars); }
 
 function company(id){ return G.companies.find(c=>c.id===id); }
 function currentPlayer(){ return G.players[G.currentIndex]; }
@@ -816,7 +1325,7 @@ function connectWs(roomId, name, opts){
   doConnect();
 }
 function doConnect(){
-  setNetStatus(NET.reconnectAttempts>0 ? '재연결 시도 중… ('+NET.reconnectAttempts+')' : '연결 서버에 접속 중…');
+  setNetStatus(NET.reconnectAttempts>0 ? t('status_reconnecting',{n:NET.reconnectAttempts}) : t('status_connecting'));
   const opts = NET.opts;
   let url = SERVER_WS+'/room/'+NET.roomId+'/ws?name='+encodeURIComponent(NET.myName)+'&cid='+encodeURIComponent(CLIENT_ID);
   if(opts.isNewRoom) url += '&roomId='+encodeURIComponent(NET.roomId)+'&public='+(opts.public?'1':'0');
@@ -832,10 +1341,10 @@ function doConnect(){
     if(G && G.ended) return;
     if(NET.reconnectAttempts < 8){
       NET.reconnectAttempts++;
-      setNetStatus('연결이 끊어졌습니다. 재연결 시도 중… ('+NET.reconnectAttempts+'/8)');
+      setNetStatus(t('status_disconnected_retry',{n:NET.reconnectAttempts}));
       setTimeout(doConnect, Math.min(1000*NET.reconnectAttempts, 5000));
     } else {
-      setNetStatus('서버와 연결이 끊어졌습니다. 앱을 완전히 종료했다가 다시 열어 주세요.');
+      setNetStatus(t('status_disconnected_final'));
     }
   });
   ws.addEventListener('error', ()=>{});
@@ -849,19 +1358,19 @@ function joinRoom(roomId, name){
   connectWs(roomId, name, {isNewRoom:false});
 }
 function startPracticeGame(){
-  const name = document.getElementById('createNameInput').value.trim() || '연습생';
+  const name = document.getElementById('createNameInput').value.trim() || t('default_name_practice');
   const roomId = randomRoomCode();
   // Bypasses the normal lobby wait entirely: as soon as we're confirmed host, fire
   // 'startGame' ourselves with an explicit short turnsPerPlayer override (see the
   // 'lobby' handler below) instead of making the user click through the lobby screen.
-  NET.autoStart = {botCount:0, turnsPerPlayer:2};
+  NET.autoStart = {botCount:0, turnsPerPlayer:2, market:LANG==='en'?'us':'kr'};
   NET.isPractice = true;
   document.getElementById('createCard').classList.add('hidden');
   document.getElementById('lobbyCard').classList.remove('hidden');
   connectWs(roomId, name, {isNewRoom:true, public:false});
 }
 async function quickMatch(name){
-  setNetStatus('빈 방을 찾는 중…');
+  setNetStatus(t('status_quickmatch_searching'));
   try{
     const res = await fetch(SERVER_HTTP+'/api/quickmatch', {method:'POST'});
     if(!res.ok) throw new Error('bad status');
@@ -871,7 +1380,7 @@ async function quickMatch(name){
     document.getElementById('lobbyCard').classList.remove('hidden');
     connectWs(data.roomId, name, {isNewRoom:true, public:true});
   }catch(e){
-    setNetStatus('매칭 서버에 연결할 수 없습니다. 다시 시도해 주세요.');
+    setNetStatus(t('status_quickmatch_fail'));
   }
 }
 function handleServerMessage(data){
@@ -892,7 +1401,7 @@ function handleServerMessage(data){
     if(NET.autoStart && NET.youAreHost){
       const opts = NET.autoStart;
       NET.autoStart = null;
-      if(NET.ws) NET.ws.send(JSON.stringify({type:'startGame', botCount:opts.botCount, turnsPerPlayer:opts.turnsPerPlayer}));
+      if(NET.ws) NET.ws.send(JSON.stringify({type:'startGame', botCount:opts.botCount, turnsPerPlayer:opts.turnsPerPlayer, market:opts.market}));
     }
     setNetStatus('');
     if(NET.youAreHost && NET.roomId){
@@ -914,7 +1423,7 @@ function handleServerMessage(data){
   } else if(data.type==='privateModal'){
     handlePrivateMessage(data);
   } else if(data.type==='error'){
-    setNetStatus(data.message);
+    setNetStatus(data.key ? t('err_'+data.key) : (data.message||''));
   } else if(data.type==='chat'){
     receiveChat({name:data.name, color:data.color, text:data.text});
   }
@@ -922,7 +1431,7 @@ function handleServerMessage(data){
 function hostStartGame(){
   if(lobby.length<1 || !NET.ws) return;
   const botCount = parseInt((document.getElementById('botCountSelect')||{}).value)||0;
-  NET.ws.send(JSON.stringify({type:'startGame', botCount}));
+  NET.ws.send(JSON.stringify({type:'startGame', botCount, market:LANG==='en'?'us':'kr'}));
 }
 function requestAction(action){
   if(NET.ws && NET.ws.readyState===WebSocket.OPEN) NET.ws.send(JSON.stringify({type:'action', action}));
@@ -967,7 +1476,7 @@ function unmuteName(name){
 function reportName(name){
   if(NET.ws) try{ NET.ws.send(JSON.stringify({type:'report', targetName:name, reason:'user_reported'})); }catch(e){}
   muteName(name);
-  setNetStatus('신고가 접수되었고, 이 사람을 자동으로 차단했습니다.');
+  setNetStatus(t('status_report_done'));
   setTimeout(()=>{ if(!G) setNetStatus(''); }, 2500);
 }
 function bumpChatUnread(){
@@ -996,14 +1505,14 @@ function renderChat(){
     const mine = me && m.name===me.name && m.color===me.color;
     if(mutedNames.includes(m.name) && !mine){
       return '<div class="chatMsg" style="opacity:.5;">'+
-        '<b style="color:'+m.color+'">'+escapeHtml(m.name)+'</b>: <i>차단한 사용자의 메시지입니다</i> '+
-        '<span class="chatAction" data-unmute="'+escapeHtml(m.name)+'" style="cursor:pointer;text-decoration:underline;">차단 해제</span></div>';
+        '<b style="color:'+m.color+'">'+escapeHtml(m.name)+'</b>: <i>'+t('chat_blocked_msg')+'</i> '+
+        '<span class="chatAction" data-unmute="'+escapeHtml(m.name)+'" style="cursor:pointer;text-decoration:underline;">'+t('chat_unblock')+'</span></div>';
     }
     const actions = mine ? '' :
-      ' <span class="chatAction" data-report="'+escapeHtml(m.name)+'" style="cursor:pointer;text-decoration:underline;opacity:.6;font-size:.7rem;">신고</span>'+
-      ' <span class="chatAction" data-mute="'+escapeHtml(m.name)+'" style="cursor:pointer;text-decoration:underline;opacity:.6;font-size:.7rem;">차단</span>';
+      ' <span class="chatAction" data-report="'+escapeHtml(m.name)+'" style="cursor:pointer;text-decoration:underline;opacity:.6;font-size:.7rem;">'+t('chat_report')+'</span>'+
+      ' <span class="chatAction" data-mute="'+escapeHtml(m.name)+'" style="cursor:pointer;text-decoration:underline;opacity:.6;font-size:.7rem;">'+t('chat_block')+'</span>';
     return '<div class="chatMsg'+(mine?' mine':'')+'"><b style="color:'+m.color+'">'+escapeHtml(m.name)+'</b>: '+escapeHtml(m.text)+actions+'</div>';
-  }).join('') || '<div class="helpText" style="margin-top:0;">아직 채팅이 없습니다. 첫 메시지를 보내보세요!</div>';
+  }).join('') || '<div class="helpText" style="margin-top:0;">'+t('chat_empty')+'</div>';
   list.scrollTop = list.scrollHeight;
   list.querySelectorAll('[data-report]').forEach(el=> el.addEventListener('click', ()=> reportName(el.dataset.report)));
   list.querySelectorAll('[data-mute]').forEach(el=> el.addEventListener('click', ()=> muteName(el.dataset.mute)));
@@ -1101,39 +1610,39 @@ function buildBoard(){
   board.innerHTML='';
   G.tiles.forEach((tile,i)=>{
     const pos = gridPos(i);
-    const t = el('div','tile '+tile.type);
-    t.style.gridColumn = pos.col;
-    t.style.gridRow = pos.row;
-    t.dataset.idx = i;
-    let typeLabel = {payday:'월급날', news:'속보', insider:'정보원', bank:'은행', company:''}[tile.type];
-    t.appendChild(el('div','tType', typeLabel));
+    const tileEl = el('div','tile '+tile.type);
+    tileEl.style.gridColumn = pos.col;
+    tileEl.style.gridRow = pos.row;
+    tileEl.dataset.idx = i;
+    let typeLabel = {payday:t('tile_payday'), news:t('tile_news'), insider:t('tile_insider'), bank:t('tile_bank'), company:''}[tile.type];
+    tileEl.appendChild(el('div','tType', escapeHtml(typeLabel)));
     if(tile.type==='company'){
       const c = company(tile.c);
-      t.style.setProperty('--tileColor', c.color);
-      t.appendChild(el('div','tName', c.name));
-      t.appendChild(el('div','tPrice num', ''));
+      tileEl.style.setProperty('--tileColor', c.color);
+      tileEl.appendChild(el('div','tName', escapeHtml(companyName(tile.c))));
+      tileEl.appendChild(el('div','tPrice num', ''));
     } else if(tile.type==='payday'){
-      t.appendChild(el('div','tName', '급여 '+SALARY.toLocaleString('ko-KR')+'원'));
+      tileEl.appendChild(el('div','tName', escapeHtml(t('tile_payday_name',{salary:fmt(SALARY)}))));
     } else if(tile.type==='news'){
-      t.appendChild(el('div','tName', '뉴스 카드'));
+      tileEl.appendChild(el('div','tName', escapeHtml(t('tile_news_name'))));
     } else if(tile.type==='insider'){
-      t.appendChild(el('div','tName', '특종 취재'));
+      tileEl.appendChild(el('div','tName', escapeHtml(t('tile_insider_name'))));
     } else if(tile.type==='bank'){
-      t.appendChild(el('div','tName', '대출/캐시백'));
+      tileEl.appendChild(el('div','tName', escapeHtml(t('tile_bank_name'))));
     }
     const tokens = el('div','tokens');
     tokens.id='tok-'+i;
-    t.appendChild(tokens);
-    board.appendChild(t);
+    tileEl.appendChild(tokens);
+    board.appendChild(tileEl);
   });
   const center = el('div','centerPanel');
   center.innerHTML =
-    '<div class="turnLabel" id="turnLabel">현재 차례</div>'+
+    '<div class="turnLabel" id="turnLabel">'+t('current_turn_label')+'</div>'+
     '<div class="turnName" id="turnName"></div>'+
     '<div class="diceRow">'+dieCubeHTML('die1')+dieCubeHTML('die2')+'</div>'+
     '<div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;">'+
-      '<button class="rollBtn" id="rollBtn">주사위 굴리기</button>'+
-      '<button class="endTurnBtn" id="endTurnBtn">턴 종료</button>'+
+      '<button class="rollBtn" id="rollBtn">'+t('roll_btn')+'</button>'+
+      '<button class="endTurnBtn" id="endTurnBtn">'+t('end_turn_btn')+'</button>'+
     '</div>'+
     '<div class="turnTimerWrap"><div class="turnTimerBar" id="turnTimerBar"></div></div>'+
     '<div class="turnTimerText" id="turnTimerText"></div>'+
@@ -1148,7 +1657,7 @@ function renderBoardTokens(){
   G.players.forEach((p,i)=>{
     const wrap = document.getElementById('tok-'+p.pos);
     if(!wrap) return;
-    const tok = el('div','token', PLAYER_TOKENS[i]||p.name.slice(0,1));
+    const tok = el('div','token', escapeHtml(PLAYER_TOKENS[i]||p.name.slice(0,1)));
     tok.style.setProperty('--tokColor', p.color);
     wrap.appendChild(tok);
   });
@@ -1156,7 +1665,7 @@ function renderBoardTokens(){
     if(tile.type==='company'){
       const c = company(tile.c);
       const tileEl = document.querySelector('.tile[data-idx="'+i+'"] .tPrice');
-      if(tileEl) tileEl.textContent = c.price.toLocaleString('ko-KR')+'원';
+      if(tileEl) tileEl.textContent = fmt(c.price);
     }
   });
 }
@@ -1167,7 +1676,7 @@ function renderBoardTokensAt(movingIdx, pos, stepCount){
     const wrap = document.getElementById('tok-'+displayPos);
     if(!wrap) return;
     const walkCls = (i===movingIdx)? (((stepCount||0)%2===0)? ' step-right':' step-left') : '';
-    const tok = el('div','token'+walkCls, PLAYER_TOKENS[i]||p.name.slice(0,1));
+    const tok = el('div','token'+walkCls, escapeHtml(PLAYER_TOKENS[i]||p.name.slice(0,1)));
     tok.style.setProperty('--tokColor', p.color);
     wrap.appendChild(tok);
   });
@@ -1223,8 +1732,8 @@ function renderStockGrid(){
     const dir = delta>=0?'up':'down';
     const head = el('div','sc-head');
     head.innerHTML = '<span class="sc-tag" style="background:'+c.color+'"></span>'+
-      '<span class="sc-name">'+c.name+'</span>'+
-      '<span class="sc-price num">'+c.price.toLocaleString('ko-KR')+'</span>';
+      '<span class="sc-name">'+escapeHtml(companyName(c.id))+'</span>'+
+      '<span class="sc-price num">'+c.price.toLocaleString(LANG==='en'?'en-US':'ko-KR')+'</span>';
     card.appendChild(head);
     card.appendChild(el('div','sc-delta '+dir, (dir==='up'?'▲ ':'▼ ')+pctStr(delta)));
     const canvas = document.createElement('canvas');
@@ -1234,19 +1743,19 @@ function renderStockGrid(){
     const held = me? (me.holdings[c.id]||0) : 0;
     const myAvg = me? (me.avgCost[c.id]||0) : 0;
     const maxAffordable = Math.floor(myCash/(c.price*(1+TRADE_FEE)));
-    let holdLine = '내 보유 <b>'+held+'주</b> · 평가액 <b>'+fmt(held*c.price)+'</b>';
+    let holdVars = {qty:held, value:fmt(held*c.price), pl:false};
     if(held>0 && myAvg>0){
       const plPct = ((c.price-myAvg)/myAvg)*100;
       const plDir = plPct>=0?'up':'down';
-      holdLine += ' · 평단가 <b>'+fmt(myAvg)+'</b> · <span class="sc-delta '+plDir+'">'+(plDir==='up'?'▲ ':'▼ ')+pctStr(plPct)+'</span>';
+      Object.assign(holdVars, {pl:true, avg:fmt(myAvg), plDir, plArrow:(plDir==='up'?'▲':'▼'), plPct:pctStr(plPct)});
     }
-    card.appendChild(el('div','sc-hold', holdLine));
+    card.appendChild(el('div','sc-hold', t('my_holding_line', holdVars)));
     const trade = el('div','sc-trade');
     trade.innerHTML =
       '<input type="number" min="1" value="1" id="qty-'+c.id+'">'+
-      '<button class="miniBtn buy" data-act="buy" data-id="'+c.id+'" '+(!myTurn?'disabled':'')+'>매수</button>'+
-      '<button class="miniBtn max" data-act="max" data-id="'+c.id+'" '+((!myTurn||maxAffordable<1)?'disabled':'')+' title="가진 돈으로 살 수 있는 최대 수량">최대'+(maxAffordable>=1?' ('+maxAffordable+')':'')+'</button>'+
-      '<button class="miniBtn sell" data-act="sell" data-id="'+c.id+'" '+((!myTurn||held<=0)?'disabled':'')+'>매도</button>';
+      '<button class="miniBtn buy" data-act="buy" data-id="'+c.id+'" '+(!myTurn?'disabled':'')+'>'+t('buy_btn')+'</button>'+
+      '<button class="miniBtn max" data-act="max" data-id="'+c.id+'" '+((!myTurn||maxAffordable<1)?'disabled':'')+' title="'+t('max_btn_title_buy')+'">'+t('max_btn')+(maxAffordable>=1?' ('+maxAffordable+')':'')+'</button>'+
+      '<button class="miniBtn sell" data-act="sell" data-id="'+c.id+'" '+((!myTurn||held<=0)?'disabled':'')+'>'+t('sell_btn')+'</button>';
     card.appendChild(trade);
     grid.appendChild(card);
     requestAnimationFrame(()=>drawSparkline(canvas, c.history, c.color));
@@ -1271,7 +1780,7 @@ function renderStockGrid(){
 
 function renderShortGrid(){
   const intro = document.getElementById('shortIntro');
-  if(intro) intro.textContent = '하락에 베팅합니다. 주식을 빌려 지금 가격에 팔고(진입), 나중에 다시 사서(상환) 갚습니다 — 가격이 떨어질수록 이득, 오를수록 손해입니다. 진입 한도는 순자산의 '+LEVERAGE_MULT+'배까지입니다.';
+  if(intro) intro.textContent = t('short_intro',{mult:LEVERAGE_MULT});
   const grid = document.getElementById('shortGrid');
   if(!grid) return;
   grid.innerHTML='';
@@ -1284,8 +1793,8 @@ function renderShortGrid(){
     const dir = delta>=0?'up':'down';
     const head = el('div','sc-head');
     head.innerHTML = '<span class="sc-tag" style="background:'+c.color+'"></span>'+
-      '<span class="sc-name">'+c.name+'</span>'+
-      '<span class="sc-price num">'+c.price.toLocaleString('ko-KR')+'</span>';
+      '<span class="sc-name">'+escapeHtml(companyName(c.id))+'</span>'+
+      '<span class="sc-price num">'+c.price.toLocaleString(LANG==='en'?'en-US':'ko-KR')+'</span>';
     card.appendChild(head);
     card.appendChild(el('div','sc-delta '+dir, (dir==='up'?'▲ ':'▼ ')+pctStr(delta)));
     const canvas = document.createElement('canvas');
@@ -1294,19 +1803,19 @@ function renderShortGrid(){
     const shortAvg = me? (me.shortAvg[c.id]||0) : 0;
     const room = me? maxShortFor(me) : 0;
     const maxShortQty = Math.floor(room/c.price);
-    let holdLine = '내 공매도 <b>'+shortQty+'주</b> · 상환 필요액 <b>'+fmt(shortQty*c.price)+'</b>';
+    let holdVars = {qty:shortQty, value:fmt(shortQty*c.price), pl:false};
     if(shortQty>0 && shortAvg>0){
       const plPct = ((shortAvg-c.price)/shortAvg)*100;
       const plDir = plPct>=0?'up':'down';
-      holdLine += ' · 평단가 <b>'+fmt(shortAvg)+'</b> · <span class="sc-delta '+plDir+'">'+(plDir==='up'?'▲ ':'▼ ')+pctStr(plPct)+'</span>';
+      Object.assign(holdVars, {pl:true, avg:fmt(shortAvg), plDir, plArrow:(plDir==='up'?'▲':'▼'), plPct:pctStr(plPct)});
     }
-    card.appendChild(el('div','sc-hold', holdLine));
+    card.appendChild(el('div','sc-hold', t('my_short_line', holdVars)));
     const trade = el('div','sc-trade');
     trade.innerHTML =
       '<input type="number" min="1" value="1" id="sqty-'+c.id+'">'+
-      '<button class="miniBtn sell" data-act="short" data-id="'+c.id+'" '+(!myTurn?'disabled':'')+'>공매도</button>'+
-      '<button class="miniBtn max" data-act="maxshort" data-id="'+c.id+'" '+((!myTurn||maxShortQty<1)?'disabled':'')+' title="레버리지 한도 내 최대 공매도 수량">최대'+(maxShortQty>=1?' ('+maxShortQty+')':'')+'</button>'+
-      '<button class="miniBtn buy" data-act="cover" data-id="'+c.id+'" '+((!myTurn||shortQty<=0)?'disabled':'')+'>상환</button>';
+      '<button class="miniBtn sell" data-act="short" data-id="'+c.id+'" '+(!myTurn?'disabled':'')+'>'+t('short_btn')+'</button>'+
+      '<button class="miniBtn max" data-act="maxshort" data-id="'+c.id+'" '+((!myTurn||maxShortQty<1)?'disabled':'')+' title="'+t('max_btn_title_short')+'">'+t('max_btn')+(maxShortQty>=1?' ('+maxShortQty+')':'')+'</button>'+
+      '<button class="miniBtn buy" data-act="cover" data-id="'+c.id+'" '+((!myTurn||shortQty<=0)?'disabled':'')+'>'+t('cover_btn')+'</button>';
     card.appendChild(trade);
     grid.appendChild(card);
     requestAnimationFrame(()=>drawSparkline(canvas, c.history, c.color));
@@ -1332,13 +1841,13 @@ function renderShortGrid(){
 function renderShortsTable(){
   const table = document.getElementById('shortsTable');
   if(!table) return;
-  const header = '<tr><th>종목</th>'+G.players.map(p=>'<th style="color:'+p.color+'">'+p.name+(p===G.players[myPlayerIndex]?' (나)':'')+'</th>').join('')+'</tr>';
+  const header = '<tr><th>'+t('stock_header')+'</th>'+G.players.map(p=>'<th style="color:'+p.color+'">'+escapeHtml(p.name)+(p===G.players[myPlayerIndex]?t('me_suffix'):'')+'</th>').join('')+'</tr>';
   const rows = G.companies.map(c=>{
     const cells = G.players.map(p=>{
       const q = p.shorts[c.id]||0;
-      return '<td>'+(q>0? q+'주' : '<span style="color:var(--ink-3)">—</span>')+'</td>';
+      return '<td>'+(q>0? (LANG==='en'?q:q+'주') : '<span style="color:var(--ink-3)">—</span>')+'</td>';
     }).join('');
-    return '<tr><td class="name"><span style="width:8px;height:8px;border-radius:50%;background:'+c.color+';display:inline-block;"></span>'+c.name+'</td>'+cells+'</tr>';
+    return '<tr><td class="name"><span style="width:8px;height:8px;border-radius:50%;background:'+c.color+';display:inline-block;"></span>'+escapeHtml(companyName(c.id))+'</td>'+cells+'</tr>';
   }).join('');
   table.innerHTML = header+rows;
 }
@@ -1347,28 +1856,28 @@ function renderNewsTab(){
   const insiderBox = document.getElementById('myInsiderList');
   if(insiderBox){
     if(myInsiderHistory.length===0){
-      insiderBox.innerHTML = '<div class="helpText" style="margin-top:0;">아직 취재한 특종 정보가 없습니다. 정보원 타일에 도착하면 열람할 수 있어요.</div>';
+      insiderBox.innerHTML = '<div class="helpText" style="margin-top:0;">'+t('no_insider_yet')+'</div>';
     } else {
       insiderBox.innerHTML = myInsiderHistory.map(item=>{
         if(item.caught){
-          return '<div class="newsCard caught"><div class="newsTurn">턴 '+item.turn+'</div><div class="newsTitle">적발됨</div>'+
-            '<div class="newsDetail">취재 비용 '+fmt(item.cost)+' + 벌금 '+fmt(item.fine)+'</div></div>';
+          return '<div class="newsCard caught"><div class="newsTurn">'+t('turn_label_short',{n:item.turn})+'</div><div class="newsTitle">'+t('caught_title')+'</div>'+
+            '<div class="newsDetail">'+t('caught_detail',{cost:item.cost, fine:item.fine})+'</div></div>';
         }
         const dir = item.pct>=0?'up':'down';
-        return '<div class="newsCard '+dir+'"><div class="newsTurn">턴 '+item.turn+'</div><div class="newsTitle">'+item.headline+'</div>'+
-          '<div class="newsDetail">대상: '+item.target+' · 예상 변동 '+(dir==='up'?'▲ ':'▼ ')+pctStr(item.pct)+' · 비용 '+fmt(item.cost)+'</div></div>';
+        return '<div class="newsCard '+dir+'"><div class="newsTurn">'+t('turn_label_short',{n:item.turn})+'</div><div class="newsTitle">'+escapeHtml(newsHeadline(item.newsId))+'</div>'+
+          '<div class="newsDetail">'+t('insider_history_detail',{target:escapeHtml(newsTargetLabel(item.companyId)), dir:(dir==='up'?'▲':'▼'), pct:item.pct, cost:item.cost})+'</div></div>';
       }).join('');
     }
   }
   const newsBox = document.getElementById('newsHistoryList');
   if(newsBox){
     if(!G.newsHistory || G.newsHistory.length===0){
-      newsBox.innerHTML = '<div class="helpText" style="margin-top:0;">아직 발생한 속보가 없습니다.</div>';
+      newsBox.innerHTML = '<div class="helpText" style="margin-top:0;">'+t('no_news_yet')+'</div>';
     } else {
       newsBox.innerHTML = G.newsHistory.slice().reverse().map(item=>{
         const dir = item.pct>=0?'up':'down';
-        return '<div class="newsCard '+dir+'"><div class="newsTurn">턴 '+item.turn+'</div><div class="newsTitle">'+item.headline+'</div>'+
-          '<div class="newsDetail">'+item.detail+'</div></div>';
+        return '<div class="newsCard '+dir+'"><div class="newsTurn">'+t('turn_label_short',{n:item.turn})+'</div><div class="newsTitle">'+escapeHtml(newsHeadline(item.newsId))+'</div>'+
+          '<div class="newsDetail">'+escapeHtml(newsDetailText(item.companyId, item.pct))+'</div></div>';
       }).join('');
     }
   }
@@ -1382,12 +1891,12 @@ function renderPlayerCards(){
     card.innerHTML =
       '<div class="pcTop">'+
         '<span class="dot" style="background:'+p.color+'"></span>'+
-        '<span class="pname">'+(PLAYER_TOKENS[i]||'')+' '+p.name+(i===myPlayerIndex?' (나)':'')+'</span>'+
+        '<span class="pname">'+escapeHtml(PLAYER_TOKENS[i]||'')+' '+escapeHtml(p.name)+(i===myPlayerIndex?t('me_suffix'):'')+'</span>'+
       '</div>'+
       '<div class="pstats">'+
-        '<div class="pstat"><span class="pstatLabel">현금</span><span class="pstatVal">'+fmt(p.cash)+'</span></div>'+
-        '<div class="pstat"><span class="pstatLabel">대출</span><span class="pstatVal">'+fmt(p.loan)+'</span></div>'+
-        '<div class="pstat"><span class="pstatLabel">순자산</span><span class="pstatVal">'+fmt(netWorth(p))+'</span></div>'+
+        '<div class="pstat"><span class="pstatLabel">'+t('cash_header')+'</span><span class="pstatVal">'+fmt(p.cash)+'</span></div>'+
+        '<div class="pstat"><span class="pstatLabel">'+t('loan_header')+'</span><span class="pstatVal">'+fmt(p.loan)+'</span></div>'+
+        '<div class="pstat"><span class="pstatLabel">'+t('networth_header')+'</span><span class="pstatVal">'+fmt(netWorth(p))+'</span></div>'+
       '</div>';
     wrap.appendChild(card);
   });
@@ -1401,22 +1910,22 @@ function renderFinance(){
   const nw = netWorth(p);
   const ratio = clamp((p.loan/((p.cash+portfolioValue(p))*LEVERAGE_MULT||1))*100,0,100);
   box.innerHTML =
-    '<div class="row"><span>보유 현금</span><b>'+fmt(p.cash)+'</b></div>'+
-    '<div class="row"><span>대출 잔액</span><b>'+fmt(p.loan)+'</b></div>'+
-    '<div class="row"><span>포트폴리오 평가액</span><b>'+fmt(portfolioValue(p))+'</b></div>'+
-    '<div class="row"><span>공매도 상환 필요액</span><b>'+fmt(shortLiability(p))+'</b></div>'+
-    '<div class="row"><span>순자산</span><b>'+fmt(nw)+'</b></div>'+
-    '<div class="row"><span>추가 대출 가능액 (순자산 대비 '+LEVERAGE_MULT+'배 한도)</span><b>'+fmt(room)+'</b></div>'+
-    '<div class="row"><span>대출 이자율</span><b>5% · 5턴마다 부과 (다음 정산: 턴 '+(Math.ceil((G.turnCount+1)/5)*5)+')</b></div>'+
+    '<div class="row"><span>'+t('finance_cash')+'</span><b>'+fmt(p.cash)+'</b></div>'+
+    '<div class="row"><span>'+t('finance_loan')+'</span><b>'+fmt(p.loan)+'</b></div>'+
+    '<div class="row"><span>'+t('finance_portfolio')+'</span><b>'+fmt(portfolioValue(p))+'</b></div>'+
+    '<div class="row"><span>'+t('finance_short_liability')+'</span><b>'+fmt(shortLiability(p))+'</b></div>'+
+    '<div class="row"><span>'+t('finance_networth')+'</span><b>'+fmt(nw)+'</b></div>'+
+    '<div class="row"><span>'+t('finance_loan_room',{mult:LEVERAGE_MULT})+'</span><b>'+fmt(room)+'</b></div>'+
+    '<div class="row"><span>'+t('finance_interest_rate_label')+'</span><b>'+t('finance_interest_rate_value',{nextTurn:(Math.ceil((G.turnCount+1)/5)*5)})+'</b></div>'+
     '<div class="leverageBar"><div class="fill" style="width:'+ratio+'%"></div></div>'+
     '<div class="actions">'+
-      '<input type="number" id="loanAmt" placeholder="금액" min="0" value="50000">'+
-      '<button class="actionBtn gold" id="borrowBtn" '+(!myTurn?'disabled':'')+'>대출 실행</button>'+
-      '<button class="actionBtn" id="repayBtn" '+(!myTurn?'disabled':'')+'>상환</button>'+
+      '<input type="number" id="loanAmt" placeholder="'+t('loan_amount_placeholder')+'" min="0" value="50000">'+
+      '<button class="actionBtn gold" id="borrowBtn" '+(!myTurn?'disabled':'')+'>'+t('borrow_btn')+'</button>'+
+      '<button class="actionBtn" id="repayBtn" '+(!myTurn?'disabled':'')+'>'+t('repay_btn')+'</button>'+
     '</div>'+
     '<div style="margin-top:.9rem;padding-top:.8rem;border-top:1px solid var(--border);">'+
       '<button class="actionBtn gold" id="insiderBtn" '+((!myTurn||!G.insiderAvailableThisTurn||p.insiderUsedThisTurn)?'disabled':'')+' style="width:100%;">'+
-      (p.insiderUsedThisTurn? '이번 턴 정보 취재 완료' : (G.insiderAvailableThisTurn? '특종 정보 열람 (비용 '+fmt(Math.max(3000, Math.round(p.cash*0.08/1000)*1000))+')' : '정보원 타일에서만 이용 가능'))+
+      (p.insiderUsedThisTurn? t('insider_used_btn') : (G.insiderAvailableThisTurn? t('insider_available_btn',{cost:fmt(Math.max(3000, Math.round(p.cash*0.08/1000)*1000))}) : t('insider_unavailable_btn')))+
       '</button>'+
     '</div>';
   document.getElementById('borrowBtn').addEventListener('click', ()=>uiBorrow(parseInt(document.getElementById('loanAmt').value)||0));
@@ -1429,11 +1938,11 @@ function renderStandings(){
   const table = document.getElementById('standingsTable');
   const rows = G.players.map((p,i)=>({p,i,nw:netWorth(p)})).sort((a,b)=>b.nw-a.nw);
   table.innerHTML =
-    '<tr><th>순위</th><th>투자자</th><th>현금</th><th>대출</th><th>순자산</th><th>Lap</th></tr>'+
+    '<tr><th>'+t('rank_header')+'</th><th>'+t('investor_header')+'</th><th>'+t('cash_header')+'</th><th>'+t('loan_header')+'</th><th>'+t('networth_header')+'</th><th>'+t('lap_header')+'</th></tr>'+
     rows.map((r)=>
       '<tr class="'+(r.i===G.currentIndex?'current':'')+'">'+
       '<td>'+(rows.indexOf(r)+1)+'</td>'+
-      '<td class="name"><span style="width:9px;height:9px;border-radius:50%;background:'+r.p.color+';display:inline-block;"></span>'+r.p.name+(r.i===myPlayerIndex?' (나)':'')+'</td>'+
+      '<td class="name"><span style="width:9px;height:9px;border-radius:50%;background:'+r.p.color+';display:inline-block;"></span>'+escapeHtml(r.p.name)+(r.i===myPlayerIndex?t('me_suffix'):'')+'</td>'+
       '<td>'+fmt(r.p.cash)+'</td>'+
       '<td>'+fmt(r.p.loan)+'</td>'+
       '<td>'+fmt(r.nw)+'</td>'+
@@ -1445,13 +1954,13 @@ function renderStandings(){
 function renderHoldingsTable(){
   const table = document.getElementById('holdingsTable');
   if(!table) return;
-  const header = '<tr><th>종목</th>'+G.players.map(p=>'<th style="color:'+p.color+'">'+p.name+(p===G.players[myPlayerIndex]?' (나)':'')+'</th>').join('')+'</tr>';
+  const header = '<tr><th>'+t('stock_header')+'</th>'+G.players.map(p=>'<th style="color:'+p.color+'">'+escapeHtml(p.name)+(p===G.players[myPlayerIndex]?t('me_suffix'):'')+'</th>').join('')+'</tr>';
   const rows = G.companies.map(c=>{
     const cells = G.players.map(p=>{
       const q = p.holdings[c.id]||0;
-      return '<td>'+(q>0? q+'주' : '<span style="color:var(--ink-3)">—</span>')+'</td>';
+      return '<td>'+(q>0? (LANG==='en'?q:q+'주') : '<span style="color:var(--ink-3)">—</span>')+'</td>';
     }).join('');
-    return '<tr><td class="name"><span style="width:8px;height:8px;border-radius:50%;background:'+c.color+';display:inline-block;"></span>'+c.name+'</td>'+cells+'</tr>';
+    return '<tr><td class="name"><span style="width:8px;height:8px;border-radius:50%;background:'+c.color+';display:inline-block;"></span>'+escapeHtml(companyName(c.id))+'</td>'+cells+'</tr>';
   }).join('');
   table.innerHTML = header+rows;
 }
@@ -1460,7 +1969,7 @@ function renderLog(){
   const list = document.getElementById('logList');
   list.innerHTML = G.log.slice(-60).map(l=>{
     const cls = l.cls==='news'?'newsline':l.cls==='good'?'goodline':l.cls==='gold'?'goldline':'';
-    return '<li class="'+cls+'">'+l.text+'</li>';
+    return '<li class="'+cls+'">'+escapeHtml(renderLogEntry(l))+'</li>';
   }).join('');
 }
 
@@ -1470,7 +1979,7 @@ function renderTicker(){
     const prev = c.history.length>1? c.history[c.history.length-2]: c.price;
     const delta = ((c.price-prev)/prev)*100;
     const dir = delta>=0?'up':'down';
-    return '<span><b>'+c.name+'</b> '+c.price.toLocaleString('ko-KR')+'원 <span class="'+dir+'">'+(dir==='up'?'▲':'▼')+' '+pctStr(delta)+'</span></span>';
+    return '<span><b>'+escapeHtml(companyName(c.id))+'</b> '+fmt(c.price)+' <span class="'+dir+'">'+(dir==='up'?'▲':'▼')+' '+pctStr(delta)+'</span></span>';
   }).join('');
   track.innerHTML = parts+parts;
 }
@@ -1478,17 +1987,17 @@ function renderTicker(){
 function renderCenter(){
   const p = currentPlayer();
   const myTurn = myPlayerIndex===G.currentIndex;
-  document.getElementById('turnName').textContent = p.name+'님의 차례'+(myTurn?' — 당신 차례!':'');
+  document.getElementById('turnName').textContent = t('turn_of',{name:p.name, isMe:myTurn});
   document.getElementById('turnName').style.color = p.color;
   document.getElementById('rollBtn').disabled = !myTurn||G.hasRolled||G.animating||G.ended;
   document.getElementById('endTurnBtn').disabled = !myTurn||!G.hasRolled||G.animating||G.ended;
   document.getElementById('centerNews').textContent =
-    '턴 '+Math.min(G.turnCount+1,G.maxTurns)+' / '+G.maxTurns+' · Lap '+p.lap;
+    t('turn_progress',{cur:Math.min(G.turnCount+1,G.maxTurns), max:G.maxTurns, lap:p.lap});
 }
 
 function renderHeader(){
   document.getElementById('headerStatus').textContent =
-    G.players.length+'인 플레이 · 턴 '+Math.min(G.turnCount+1,G.maxTurns)+'/'+G.maxTurns;
+    t('header_status',{count:G.players.length, cur:Math.min(G.turnCount+1,G.maxTurns), max:G.maxTurns});
 }
 
 let lastSeenCash = null;
@@ -1498,9 +2007,11 @@ function renderMyIdentity(){
   if(!me){ box.textContent=''; return; }
   const changed = lastSeenCash!==null && me.cash!==lastSeenCash;
   const diff = changed? me.cash-lastSeenCash : 0;
-  box.innerHTML = '나: <b style="color:'+me.color+'">'+(PLAYER_TOKENS[myPlayerIndex]||'')+' '+me.name+'</b>'+
-    (myPlayerIndex===G.currentIndex? ' — <b style="color:var(--accent-strong)">지금 당신 차례입니다</b>' : (G.players[G.currentIndex] && G.players[G.currentIndex].isBot ? ' — 🤖 AI가 턴을 진행 중입니다' : ' — 다른 사람 차례를 기다리는 중'))+
-    '<div class="cashLine">내 현금 '+fmt(me.cash)+
+  const turnStatus = myPlayerIndex===G.currentIndex? ' — <b style="color:var(--accent-strong)">'+t('your_turn_now')+'</b>' :
+    (G.players[G.currentIndex] && G.players[G.currentIndex].isBot ? ' — '+t('ai_turn') : ' — '+t('waiting_other_turn'));
+  box.innerHTML = t('me_label')+' <b style="color:'+me.color+'">'+escapeHtml(PLAYER_TOKENS[myPlayerIndex]||'')+' '+escapeHtml(me.name)+'</b>'+
+    turnStatus+
+    '<div class="cashLine">'+t('my_cash_label')+' '+fmt(me.cash)+
     (changed? '<span class="cashDelta '+(diff>=0?'up':'down')+'">'+(diff>=0?'+'+fmt(diff):fmt(diff))+'</span>' : '')+
     '</div>';
   if(changed){
@@ -1543,7 +2054,7 @@ function updateTimerDisplay(){
   const txt = document.getElementById('turnTimerText');
   if(!bar||!txt) return;
   const remain = Math.max(0, Math.ceil((G.turnDeadline-Date.now())/1000));
-  txt.textContent = '남은 시간 '+remain+'초';
+  txt.textContent = t('turn_remaining',{n:remain});
   const pct = clamp((remain/TURN_SECONDS)*100,0,100);
   bar.style.width = pct+'%';
   bar.style.background = remain<=15? 'var(--critical)' : (remain<=30? 'var(--warning)':'var(--good)');
@@ -1558,7 +2069,7 @@ function updateTimerDisplay(){
 function showTurnEndingToast(remain){
   const existing = document.getElementById('turnEndingToast');
   if(existing) existing.remove();
-  const toast = el('div','turnEndingToast','⏰ '+remain+'초 후 내 턴이 자동으로 넘어갑니다!');
+  const toast = el('div','turnEndingToast', escapeHtml(t('turn_ending_toast',{n:remain})));
   toast.id='turnEndingToast';
   document.body.appendChild(toast);
   requestAnimationFrame(()=>toast.classList.add('show'));
@@ -1572,37 +2083,38 @@ function showTurnEndingToast(remain){
 function showNewsModal(result){
   const dir = result.pct>=0?'up':'down';
   openModal(
-    '<div class="kicker">속보 · News Flash</div>'+
-    '<h3>'+result.headline+'</h3>'+
-    '<p>대상: '+result.target+'</p>'+
-    '<div class="impact '+dir+'">'+(dir==='up'?'▲ ':'▼ ')+result.detail+'</div>'
+    '<div class="kicker">'+t('news_kicker')+'</div>'+
+    '<h3>'+escapeHtml(newsHeadline(result.newsId))+'</h3>'+
+    '<p>'+t('news_target_line', {target:escapeHtml(newsTargetLabel(result.companyId))})+'</p>'+
+    '<div class="impact '+dir+'">'+(dir==='up'?'▲ ':'▼ ')+escapeHtml(newsDetailText(result.companyId, result.pct))+'</div>'
   );
 }
 function showInsiderModal(r){
   if(r.caught){
     myInsiderHistory.unshift({turn:G.turnCount+1, caught:true, cost:r.cost, fine:r.fine});
     openModal(
-      '<div class="kicker" style="color:var(--critical)">적발 · Compliance Alert</div>'+
-      '<h3>정보원이 미행당했습니다</h3>'+
-      '<p>취재 비용 '+fmt(r.cost)+'에 더해 벌금 '+fmt(r.fine)+'이 부과되었습니다. 다음엔 더 조심하세요.</p>'
+      '<div class="kicker" style="color:var(--critical)">'+t('insider_caught_kicker')+'</div>'+
+      '<h3>'+t('insider_caught_title')+'</h3>'+
+      '<p>'+t('insider_caught_text', {cost:r.cost, fine:r.fine})+'</p>'
     );
   } else {
-    myInsiderHistory.unshift({turn:G.turnCount+1, caught:false, headline:r.headline, target:r.target, pct:r.pct, cost:r.cost});
+    myInsiderHistory.unshift({turn:G.turnCount+1, caught:false, newsId:r.newsId, companyId:r.companyId, pct:r.pct, cost:r.cost});
     const dir = r.pct>=0?'up':'down';
     openModal(
-      '<div class="kicker">특종 · Insider Memo (나만 볼 수 있음)</div>'+
-      '<h3>'+r.headline+'</h3>'+
-      '<p>대상: '+r.target+' · 취재 비용 '+fmt(r.cost)+'</p>'+
-      '<div class="impact '+dir+'">예상 변동 '+(dir==='up'?'▲ ':'▼ ')+pctStr(r.pct)+'</div>'+
-      '<p style="margin-top:.5rem;">이 카드는 아직 뽑히지 않았습니다 — 다음 뉴스 카드로 등장할 가능성이 높습니다.</p>'
+      '<div class="kicker">'+t('insider_kicker')+'</div>'+
+      '<h3>'+escapeHtml(newsHeadline(r.newsId))+'</h3>'+
+      '<p>'+t('insider_target_line', {target:escapeHtml(newsTargetLabel(r.companyId)), cost:r.cost})+'</p>'+
+      '<div class="impact '+dir+'">'+t('insider_expected_move', {dir:(dir==='up'?'▲':'▼'), pct:pctStr(r.pct)})+'</div>'+
+      '<p style="margin-top:.5rem;">'+t('insider_not_drawn_yet')+'</p>'
     );
   }
 }
 function showWarningModal(payload){
+  const titleKey = payload.key.replace(/_modal$/, '_title');
   openModal(
-    '<div class="kicker" style="color:var(--warning)">경고 · Risk Alert (나만 볼 수 있음)</div>'+
-    '<h3>'+payload.title+'</h3>'+
-    '<p>'+payload.text+'</p>'
+    '<div class="kicker" style="color:var(--warning)">'+t('warning_kicker')+'</div>'+
+    '<h3>'+t(titleKey)+'</h3>'+
+    '<p>'+t(payload.key, payload.vars)+'</p>'
   );
 }
 function openModal(innerHtml, extraClass, footerHtml){
@@ -1610,7 +2122,7 @@ function openModal(innerHtml, extraClass, footerHtml){
   if(existing) existing.remove();
   const overlay = el('div','overlay');
   overlay.id='modalOverlay';
-  const footer = footerHtml!==undefined ? footerHtml : '<button class="closeBtn" id="modalClose">확인</button>';
+  const footer = footerHtml!==undefined ? footerHtml : '<button class="closeBtn" id="modalClose">'+t('modal_confirm')+'</button>';
   const modal = el('div','modal'+(extraClass?(' '+extraClass):''), innerHtml+footer);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
@@ -1625,34 +2137,13 @@ function showRulesModal(auto){
   }
   const footer = auto ?
     '<div class="footerRow">'+
-      '<button class="closeBtn secondary" id="rulesDontShowBtn" style="flex:1;">다시 보지 않기</button>'+
-      '<button class="closeBtn" id="rulesCloseBtn" style="flex:1;">닫기</button>'+
+      '<button class="closeBtn secondary" id="rulesDontShowBtn" style="flex:1;">'+t('rules_dont_show')+'</button>'+
+      '<button class="closeBtn" id="rulesCloseBtn" style="flex:1;">'+t('rules_close')+'</button>'+
     '</div>' : undefined;
   const overlay = openModal(
-    '<div class="kicker">가이드 · How to Play</div>'+
-    '<h3>주가조작단 게임 방법</h3>'+
-    '<div class="rulesBody">'+
-      '<h4>목표</h4>'+
-      '<p>정해진 턴이 모두 끝나면 <b>순자산</b>(현금 + 주식 평가액 − 대출 − 공매도 평가손실)이 가장 높은 플레이어가 승리합니다.</p>'+
-      '<h4>시작하기</h4>'+
-      '<p>한 명이 "방 만들기"로 호스트가 되어 초대 링크를 만들고, 그 링크로 최대 3명이 더 참가할 수 있습니다(최대 4명). 각자 시드머니 <b>100만원</b>으로 시작합니다.</p>'+
-      '<h4>턴 진행</h4>'+
-      '<p>자기 차례에 주사위를 굴려 보드를 이동합니다. 한 턴은 <b>90초</b> 제한이 있고, 시간 안에 행동하지 않으면 자동으로 주사위를 굴리고 턴이 넘어갑니다.</p>'+
-      '<h4>보드 칸</h4>'+
-      '<p><b>월급날</b> — 급여 20만원 지급 · <b>기업 칸</b> — 보유 중이면 배당금 지급 · <b>속보 칸</b> — 뉴스 카드가 즉시 발동되어 주가 변동 · <b>정보원 칸</b> — 이번 턴에 한해 특종 정보 열람 가능 · <b>은행 칸</b> — 이자 캐시백 지급</p>'+
-      '<h4>거래소</h4>'+
-      '<p>자기 차례에 아무 종목이나 매수/매도할 수 있습니다. 매수하면 그 종목 가격이 오르고 매도하면 내려갑니다 — 실제 시장처럼 내 거래가 가격에 영향을 줍니다. "최대" 버튼으로 가진 돈만큼 한 번에 살 수 있습니다.</p>'+
-      '<h4>공매도</h4>'+
-      '<p>하락에 베팅하는 기능입니다. "공매도"로 진입하면 즉시 현금을 받고, 나중에 "상환"으로 다시 사서 갚아야 합니다. 진입가보다 가격이 떨어지면 이득, 오르면 손해입니다.</p>'+
-      '<h4>레버리지(대출)</h4>'+
-      '<p>순자산의 최대 <b>2배</b>까지 대출받아 매수·공매도 자금으로 쓸 수 있습니다. <b>5턴마다 5%</b> 이자가 자동으로 부과되며, 부과 1턴 전에 예고 알림이 뜹니다.</p>'+
-      '<h4>특종 정보(내부자 정보)</h4>'+
-      '<p>정보원 칸에 도착하면 비용을 내고 다음에 터질 뉴스를 미리 볼 수 있습니다. 단, 15% 확률로 적발되어 벌금을 물 수 있습니다. 받은 정보는 "뉴스/정보" 탭에서 다시 볼 수 있습니다.</p>'+
-      '<h4>반대매매(마진콜)</h4>'+
-      '<p>순자산이 마이너스가 되면 보유 주식과 공매도 포지션이 페널티(10%)와 함께 강제로 정리됩니다. 위험 구간(순자산이 레버리지 노출의 20% 미만)에 들어서면 미리 경고 알림이 뜹니다.</p>'+
-      '<h4>승리</h4>'+
-      '<p>설정한 턴 수가 모두 끝나면 그 시점의 순자산 1위가 최종 승자입니다.</p>'+
-    '</div>',
+    '<div class="kicker">'+t('rules_kicker')+'</div>'+
+    '<h3>'+t('rules_h3')+'</h3>'+
+    '<div class="rulesBody">'+t('rules_html')+'</div>',
     'wide',
     footer
   );
@@ -1671,19 +2162,19 @@ function showEndGameModal(){
   let bodyRows = ranked.map((r,i)=>
     '<div class="rankRow"><span class="rank">'+(i+1)+'</span>'+
     '<span style="width:11px;height:11px;border-radius:50%;background:'+r.p.color+';display:inline-block;margin-right:.3rem;"></span>'+
-    '<span class="who">'+r.p.name+'</span><span class="val">'+fmt(r.nw)+'</span></div>'
+    '<span class="who">'+escapeHtml(r.p.name)+'</span><span class="val">'+fmt(r.nw)+'</span></div>'
   ).join('');
   const canvasId = 'endChart';
   openModal(
-    '<div class="kicker">폐장 · Closing Bell</div>'+
-    '<h3>'+ranked[0].p.name+'님, 최종 승리!</h3>'+
+    '<div class="kicker">'+t('end_kicker')+'</div>'+
+    '<h3>'+t('end_winner',{name:escapeHtml(ranked[0].p.name)})+'</h3>'+
     bodyRows+
     '<canvas id="'+canvasId+'" style="width:100%;height:140px;margin-top:.8rem;"></canvas>'+
     '<div id="chartLegend"></div>'+
-    (NET.isPractice ? '<p class="helpText" style="margin-top:.8rem;">연습이 끝났어요! 처음 화면에서 "방 만들기"로 친구들과 진짜 게임을 시작해보세요.</p>' : '')
+    (NET.isPractice ? '<p class="helpText" style="margin-top:.8rem;">'+t('end_practice_note')+'</p>' : '')
   );
   const legend = document.getElementById('chartLegend');
-  legend.innerHTML = G.players.map(p=>'<span><i style="background:'+p.color+'"></i>'+p.name+'</span>').join('');
+  legend.innerHTML = G.players.map(p=>'<span><i style="background:'+p.color+'"></i>'+escapeHtml(p.name)+'</span>').join('');
   requestAnimationFrame(()=>drawEndChart(document.getElementById(canvasId)));
 }
 function drawEndChart(canvas){
@@ -1726,8 +2217,8 @@ function renderLengthChoice(){
   // this screen will become the host the moment they create the room, so it should
   // already be freely choosable. Once connected, only the actual host may still edit it.
   const editable = !G && (!NET.ws || NET.youAreHost);
-  [[12,'짧게'],[18,'보통'],[24,'길게']].forEach(([v,label])=>{
-    const chip = el('div','chip'+(pendingSettings.turnsPerPlayer===v?' active':''), label+' · 1인당 '+v+'턴');
+  [[12,'length_short'],[18,'length_normal'],[24,'length_long']].forEach(([v,labelKey])=>{
+    const chip = el('div','chip'+(pendingSettings.turnsPerPlayer===v?' active':''), escapeHtml(t('length_option',{label:t(labelKey), turns:v})));
     if(!editable) chip.style.opacity='.55';
     chip.addEventListener('click', ()=>{
       if(!editable) return;
@@ -1742,9 +2233,9 @@ function renderLobby(){
   const list = document.getElementById('lobbyList');
   list.innerHTML = lobby.map((l,i)=>
     '<div class="lobbySlot"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:'+PLAYER_COLORS[i]+';display:inline-block;"></span>'+
-    '<span>'+(PLAYER_TOKENS[i]||'')+' '+l.name+'</span>'+
-    '<span class="tag">'+(i===0?'호스트':'참가자')+(l.name===NET.myName?' · 나':'')+'</span></div>'
-  ).join('') || '<div class="helpText" style="margin-top:0;">참가자를 기다리는 중…</div>';
+    '<span>'+escapeHtml(PLAYER_TOKENS[i]||'')+' '+escapeHtml(l.name)+'</span>'+
+    '<span class="tag">'+(i===0?t('host_tag'):t('guest_tag'))+(l.name===NET.myName?t('me_suffix'):'')+'</span></div>'
+  ).join('') || '<div class="helpText" style="margin-top:0;">'+t('waiting_for_players')+'</div>';
   const btn = document.getElementById('startGameBtn');
   const botRow = document.getElementById('botSelectRow');
   const botSelect = document.getElementById('botCountSelect');
@@ -1755,16 +2246,15 @@ function renderLobby(){
     if(maxBots>0){
       botRow.classList.remove('hidden');
       const prevVal = botSelect.value;
-      botSelect.innerHTML = Array.from({length:maxBots+1},(_,n)=>'<option value="'+n+'">'+n+'명</option>').join('');
+      botSelect.innerHTML = Array.from({length:maxBots+1},(_,n)=>'<option value="'+n+'">'+escapeHtml(t('bot_option_label',{n}))+'</option>').join('');
       botSelect.value = (prevVal && parseInt(prevVal)<=maxBots) ? prevVal : String(maxBots);
     } else {
       botRow.classList.add('hidden');
-      botSelect.innerHTML = '<option value="0">0명</option>';
+      botSelect.innerHTML = '<option value="0">'+escapeHtml(t('bot_option_label',{n:0}))+'</option>';
       botSelect.value = '0';
     }
     const botCount = parseInt(botSelect.value)||0;
-    const totalCount = lobby.length+botCount;
-    btn.textContent = botCount>0 ? '게임 시작 ('+lobby.length+'명 + AI '+botCount+'명)' : (lobby.length<2 ? '혼자 시작하기 ('+lobby.length+'/4명)' : '게임 시작 ('+lobby.length+'/4명)');
+    btn.textContent = botCount>0 ? t('start_game_btn_bots',{count:lobby.length, botCount}) : (lobby.length<2 ? t('start_game_btn_solo',{count:lobby.length}) : t('start_game_btn_normal',{count:lobby.length}));
   } else {
     botRow.classList.add('hidden');
     btn.classList.add('hidden');
@@ -1781,23 +2271,32 @@ function enterGameScreen(){
 }
 
 function boot(){
+  document.documentElement.lang = LANG;
+  applyStaticI18n();
+  updateLangToggleBtn();
+  document.getElementById('langToggleBtn').addEventListener('click', ()=>setLang(LANG==='ko'?'en':'ko'));
+  const createNameInput = document.getElementById('createNameInput');
+  const joinNameInput = document.getElementById('joinNameInput');
+  if(createNameInput) createNameInput.value = t('default_name_host');
+  if(joinNameInput) joinNameInput.value = t('default_name_investor');
+
   renderLengthChoice();
   const room = new URLSearchParams(location.search).get('room');
   const saved = loadSession();
 
   document.getElementById('createBtn').addEventListener('click', ()=>{
-    const name = document.getElementById('createNameInput').value.trim() || '호스트';
+    const name = document.getElementById('createNameInput').value.trim() || t('default_name_host');
     document.getElementById('createCard').classList.add('hidden');
     document.getElementById('lobbyCard').classList.remove('hidden');
     createRoom(name);
   });
   document.getElementById('quickMatchBtn').addEventListener('click', ()=>{
-    const name = document.getElementById('createNameInput').value.trim() || '투자자';
+    const name = document.getElementById('createNameInput').value.trim() || t('default_name_investor');
     quickMatch(name);
   });
   document.getElementById('practiceBtn').addEventListener('click', startPracticeGame);
   document.getElementById('joinBtn').addEventListener('click', ()=>{
-    const name = document.getElementById('joinNameInput').value.trim() || '투자자';
+    const name = document.getElementById('joinNameInput').value.trim() || t('default_name_investor');
     document.getElementById('joinCard').classList.add('hidden');
     document.getElementById('lobbyCard').classList.remove('hidden');
     joinRoom(room, name);
@@ -1810,22 +2309,22 @@ function boot(){
     document.getElementById('createCard').classList.add('hidden');
     document.getElementById('joinCard').classList.add('hidden');
     document.getElementById('lobbyCard').classList.remove('hidden');
-    setNetStatus('이전 대기실에 다시 접속하는 중…');
+    setNetStatus(t('status_reconnecting_prev'));
     connectWs(saved.roomId, saved.name, saved.opts);
   } else if(room){
     document.getElementById('createCard').classList.add('hidden');
     document.getElementById('joinCard').classList.remove('hidden');
     document.getElementById('waitingText').classList.remove('hidden');
-    setNetStatus('참가할 준비가 되었습니다.');
+    setNetStatus(t('status_ready_join'));
   } else {
-    setNetStatus('방을 만들 준비가 되었습니다.');
+    setNetStatus(t('status_ready_create'));
   }
   document.getElementById('copyLinkBtn').addEventListener('click', ()=>{
     const input = document.getElementById('inviteLink');
     input.select();
     navigator.clipboard && navigator.clipboard.writeText(input.value).catch(()=>{});
     const btn = document.getElementById('copyLinkBtn');
-    const old = btn.textContent; btn.textContent='복사됨!';
+    const old = btn.textContent; btn.textContent=t('copy_done');
     setTimeout(()=>btn.textContent=old, 1500);
   });
   document.getElementById('startGameBtn').addEventListener('click', hostStartGame);
