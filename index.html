@@ -530,6 +530,7 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
       <div class="sub" data-i18n="app_sub">Insider Trading Board Game · 2–4인용 실시간 온라인 보드게임</div>
     </div>
     <div class="headerRight">
+      <button class="langBtn" id="muteBtn" title="BGM">🔊</button>
       <button class="langBtn" id="langToggleBtn">EN</button>
       <button class="rulesBtn" id="statsBtn" data-i18n="stats_btn">내 전적</button>
       <button class="rulesBtn" id="rulesBtn" data-i18n="rules_btn">게임 방법</button>
@@ -856,6 +857,67 @@ function setPcode(code){
   PCODE = code;
   try{ localStorage.setItem('jujak_pcode', PCODE); }catch(e){}
 }
+
+/* ============ AUDIO (BGM) ============ */
+// Situational background music: a calm loop for the lobby/setup screen, an upbeat loop
+// during normal play, a tenser loop that swaps in briefly for dramatic moments (margin
+// risk, big news swings, getting caught insider trading), and a short victory stinger
+// when the game ends. All tracks are CC0 (see audio/CREDITS.txt).
+const BGM_FILES = { lobby:'audio/bgm_lobby.mp3', play:'audio/bgm_play.mp3', tense:'audio/bgm_tense.mp3' };
+const SFX_FILES = { victory:'audio/sfx_victory.mp3' };
+let AUDIO_MUTED = false;
+try{ AUDIO_MUTED = localStorage.getItem('jujak_muted')==='1'; }catch(e){}
+const bgmEls = {}, sfxEls = {};
+for(const k in BGM_FILES){ const a=new Audio(BGM_FILES[k]); a.loop=true; a.volume=0.38; a.preload='auto'; bgmEls[k]=a; }
+for(const k in SFX_FILES){ const a=new Audio(SFX_FILES[k]); a.loop=false; a.volume=0.65; sfxEls[k]=a; }
+let currentBgmKey = null;
+let tenseRevertTimer = null;
+let audioUnlocked = false;
+function unlockAudio(){
+  if(audioUnlocked) return;
+  audioUnlocked = true;
+  // Mobile browsers only allow the very first play() inside a user-gesture handler --
+  // "warm up" every track once (immediately paused) so later programmatic play() calls work.
+  [...Object.values(bgmEls), ...Object.values(sfxEls)].forEach(a=>{ a.play().then(()=>a.pause()).catch(()=>{}); });
+  if(!G) playBgm('lobby');
+}
+['click','touchstart'].forEach(ev=>document.addEventListener(ev, unlockAudio, {once:true, passive:true}));
+function playBgm(key){
+  if(currentBgmKey===key) return;
+  currentBgmKey = key;
+  for(const k in bgmEls){
+    if(k===key){ if(!AUDIO_MUTED) bgmEls[k].play().catch(()=>{}); }
+    else bgmEls[k].pause();
+  }
+}
+function playSfx(key){
+  const a = sfxEls[key];
+  if(!a || AUDIO_MUTED) return;
+  a.currentTime = 0;
+  a.play().catch(()=>{});
+}
+function stopAllBgm(){
+  currentBgmKey = null;
+  for(const k in bgmEls) bgmEls[k].pause();
+}
+function triggerTenseMusic(durationMs){
+  if(!G || G.ended || AUDIO_MUTED) return;
+  playBgm('tense');
+  if(tenseRevertTimer) clearTimeout(tenseRevertTimer);
+  tenseRevertTimer = setTimeout(()=>{ if(G && !G.ended) playBgm('play'); }, durationMs||15000);
+}
+function setMuted(m){
+  AUDIO_MUTED = m;
+  try{ localStorage.setItem('jujak_muted', m?'1':'0'); }catch(e){}
+  if(m){ for(const k in bgmEls) bgmEls[k].pause(); for(const k in sfxEls) sfxEls[k].pause(); }
+  else if(currentBgmKey){ bgmEls[currentBgmKey].play().catch(()=>{}); }
+  updateMuteBtn();
+}
+function updateMuteBtn(){
+  const btn = document.getElementById('muteBtn');
+  if(btn) btn.textContent = AUDIO_MUTED ? '🔇' : '🔊';
+}
+
 const NET = { ws:null, roomId:null, myName:null, youAreHost:false };
 
 /* ============ I18N ============ */
@@ -2138,6 +2200,7 @@ function showTurnEndingToast(remain){
 /* ============ MODALS ============ */
 function showNewsModal(result){
   const dir = result.pct>=0?'up':'down';
+  if(Math.abs(result.pct)>=10) triggerTenseMusic(12000);
   openModal(
     '<div class="kicker">'+t('news_kicker')+'</div>'+
     '<h3>'+escapeHtml(newsHeadline(result.newsId))+'</h3>'+
@@ -2147,6 +2210,7 @@ function showNewsModal(result){
 }
 function showInsiderModal(r){
   if(r.caught){
+    triggerTenseMusic(10000);
     myInsiderHistory.unshift({turn:G.turnCount+1, caught:true, cost:r.cost, fine:r.fine});
     openModal(
       '<div class="kicker" style="color:var(--critical)">'+t('insider_caught_kicker')+'</div>'+
@@ -2166,6 +2230,7 @@ function showInsiderModal(r){
   }
 }
 function showWarningModal(payload){
+  if(payload.key==='margin_risk_modal') triggerTenseMusic(20000);
   const titleKey = payload.key.replace(/_modal$/, '_title');
   openModal(
     '<div class="kicker" style="color:var(--warning)">'+t('warning_kicker')+'</div>'+
@@ -2278,6 +2343,8 @@ function showStatsModal(){
 
 /* ============ END GAME ============ */
 function showEndGameModal(){
+  stopAllBgm();
+  playSfx('victory');
   const ranked = G.players.map(p=>({p,nw:netWorth(p)})).sort((a,b)=>b.nw-a.nw);
   let bodyRows = ranked.map((r,i)=>
     '<div class="rankRow"><span class="rank">'+(i+1)+'</span>'+
@@ -2388,6 +2455,7 @@ function enterGameScreen(){
   renderAll();
   startTimerTick();
   showRulesModal(true);
+  playBgm('play');
 }
 
 function boot(){
@@ -2395,6 +2463,8 @@ function boot(){
   applyStaticI18n();
   updateLangToggleBtn();
   document.getElementById('langToggleBtn').addEventListener('click', ()=>setLang(LANG==='ko'?'en':'ko'));
+  updateMuteBtn();
+  document.getElementById('muteBtn').addEventListener('click', ()=>setMuted(!AUDIO_MUTED));
   const createNameInput = document.getElementById('createNameInput');
   const joinNameInput = document.getElementById('joinNameInput');
   if(createNameInput) createNameInput.value = t('default_name_host');

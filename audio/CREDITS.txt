@@ -1,0 +1,9 @@
+Background music credits (all CC0 / Public Domain — free to use, no attribution legally required, credited here anyway as courtesy)
+
+bgm_lobby.mp3   — "Menu Chill Music", opengameart.org/content/menu-chill-music
+bgm_play.mp3    — "Wild Jazz" by Alex McCulloch, opengameart.org/content/wild-jazz
+bgm_tense.mp3   — from "MIDI 2 'tension' songs", opengameart.org/content/midi-2-tension-songs
+sfx_victory.mp3 — "Victory Fanfare Short" by cynicmusic, opengameart.org/content/victory-fanfare-short
+
+All sourced from OpenGameArt.org under CC0 (Creative Commons Zero / Public Domain).
+Converted to 128kbps MP3 for smaller file size.
