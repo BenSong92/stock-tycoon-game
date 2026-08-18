@@ -4,6 +4,8 @@ bgm_lobby.mp3   — "Menu Chill Music", opengameart.org/content/menu-chill-music
 bgm_play.mp3    — "Wild Jazz" by Alex McCulloch, opengameart.org/content/wild-jazz
 bgm_tense.mp3   — from "MIDI 2 'tension' songs", opengameart.org/content/midi-2-tension-songs
 sfx_victory.mp3 — "Victory Fanfare Short" by cynicmusic, opengameart.org/content/victory-fanfare-short
+sfx_dice.mp3    — "Wooden dice on wooden table roll", opengameart.org/content/wooden-dice-on-wodden-table-roll
+sfx_step.mp3    — from "100 CC0 metal and wood SFX", opengameart.org/content/100-cc0-metal-and-wood-sfx
 
 All sourced from OpenGameArt.org under CC0 (Creative Commons Zero / Public Domain).
 Converted to 128kbps MP3 for smaller file size.

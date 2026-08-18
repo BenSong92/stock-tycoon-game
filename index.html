@@ -864,12 +864,13 @@ function setPcode(code){
 // risk, big news swings, getting caught insider trading), and a short victory stinger
 // when the game ends. All tracks are CC0 (see audio/CREDITS.txt).
 const BGM_FILES = { lobby:'audio/bgm_lobby.mp3', play:'audio/bgm_play.mp3', tense:'audio/bgm_tense.mp3' };
-const SFX_FILES = { victory:'audio/sfx_victory.mp3' };
+const SFX_FILES = { victory:'audio/sfx_victory.mp3', dice:'audio/sfx_dice.mp3', step:'audio/sfx_step.mp3' };
 let AUDIO_MUTED = false;
 try{ AUDIO_MUTED = localStorage.getItem('jujak_muted')==='1'; }catch(e){}
+const SFX_VOLUMES = { victory:0.65, dice:0.55, step:0.35 }; // step repeats rapidly during a hop, so it's kept quiet
 const bgmEls = {}, sfxEls = {};
 for(const k in BGM_FILES){ const a=new Audio(BGM_FILES[k]); a.loop=true; a.volume=0.38; a.preload='auto'; bgmEls[k]=a; }
-for(const k in SFX_FILES){ const a=new Audio(SFX_FILES[k]); a.loop=false; a.volume=0.65; sfxEls[k]=a; }
+for(const k in SFX_FILES){ const a=new Audio(SFX_FILES[k]); a.loop=false; a.volume=SFX_VOLUMES[k]!=null?SFX_VOLUMES[k]:0.6; sfxEls[k]=a; }
 let currentBgmKey = null;
 let tenseRevertTimer = null;
 let audioUnlocked = false;
@@ -1665,12 +1666,14 @@ function animateRoll(meta){
   if(endBtn) endBtn.disabled = true;
   if(die1) setDieToValue(die1, 0, meta.dice[0]);
   if(die2) setDieToValue(die2, 1, meta.dice[1]);
+  playSfx('dice');
   setTimeout(hopTokenThenReveal, 780);
 
   function hopTokenThenReveal(){
     let cur = meta.from, count=0;
     const timer = setInterval(()=>{
       cur = (cur+1)%20; count++;
+      playSfx('step');
       renderBoardTokensAt(meta.playerIndex, cur, count);
       if(count>=meta.steps){
         clearInterval(timer);
