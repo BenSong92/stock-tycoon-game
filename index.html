@@ -512,6 +512,12 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
 #endModal .rankRow .val{font-family:var(--mono);color:var(--ink-2);}
 #chartLegend{display:flex;gap:.8rem;flex-wrap:wrap;font-size:.72rem;color:var(--ink-2);margin-top:.4rem;}
 #chartLegend span{display:inline-flex;align-items:center;gap:.3rem;}
+
+/* my record */
+.modal .statRow{display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;border-bottom:1px solid var(--border);font-size:.9rem;}
+.modal .statRow span{color:var(--ink-2);}
+.modal .statRow b{font-family:var(--mono);}
+.modal .inviteRow input{font-family:var(--mono);letter-spacing:.05em;}
 #chartLegend i{width:9px;height:9px;border-radius:50%;display:inline-block;}
 </style>
 
@@ -525,6 +531,7 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
     </div>
     <div class="headerRight">
       <button class="langBtn" id="langToggleBtn">EN</button>
+      <button class="rulesBtn" id="statsBtn" data-i18n="stats_btn">내 전적</button>
       <button class="rulesBtn" id="rulesBtn" data-i18n="rules_btn">게임 방법</button>
       <div class="status" id="headerStatus"></div>
     </div>
@@ -830,6 +837,25 @@ try{
   CLIENT_ID = localStorage.getItem('jujak_cid');
   if(!CLIENT_ID){ CLIENT_ID = genId(); localStorage.setItem('jujak_cid', CLIENT_ID); }
 }catch(e){ CLIENT_ID = genId(); }
+
+// Personal record code: short and human-typeable (unlike CLIENT_ID) so a player can
+// carry it to a new phone/browser by typing it in, and their stats keep accumulating
+// under the same code. Auto-generated on first visit; every finished game gets recorded
+// under whatever PCODE is currently set (see doConnect()).
+function genPcode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no O/0, I/1 -- same as room codes
+  let s=''; for(let i=0;i<10;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+  return s.slice(0,5)+'-'+s.slice(5);
+}
+let PCODE;
+try{
+  PCODE = localStorage.getItem('jujak_pcode');
+  if(!PCODE){ PCODE = genPcode(); localStorage.setItem('jujak_pcode', PCODE); }
+}catch(e){ PCODE = genPcode(); }
+function setPcode(code){
+  PCODE = code;
+  try{ localStorage.setItem('jujak_pcode', PCODE); }catch(e){}
+}
 const NET = { ws:null, roomId:null, myName:null, youAreHost:false };
 
 /* ============ I18N ============ */
@@ -962,6 +988,21 @@ const T = { ko:{}, en:{} };
 T.ko = {
   app_sub: 'Insider Trading Board Game · 2–4인용 실시간 온라인 보드게임',
   rules_btn: '게임 방법',
+  stats_btn: '내 전적',
+  stats_kicker: '내 기록 · My Record',
+  stats_h3: '전적 조회',
+  stats_code_label: '내 코드',
+  stats_code_help: '이 코드를 적어두면 다른 폰이나 브라우저에서도 같은 전적을 이어서 볼 수 있어요.',
+  stats_games: '플레이한 게임', stats_wins: '1등한 게임', stats_winrate: '승률',
+  stats_best_rank: '최고 등수', stats_best_networth: '최고 순자산', stats_avg_networth: '평균 순자산',
+  stats_rank_value: v => v.n+'등',
+  stats_no_games: '아직 완료한 게임이 없어요. 게임을 끝까지 플레이하면 여기에 기록이 쌓여요.',
+  stats_loading: '불러오는 중…',
+  stats_error: '기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
+  stats_load_other_label: '다른 코드로 불러오기',
+  stats_load_other_help: '다른 기기에서 쓰던 코드를 입력하면 그 전적을 볼 수 있고, 앞으로 이 기기에서도 그 코드로 계속 기록돼요.',
+  stats_load_btn: '불러오기',
+  stats_code_placeholder: '코드 입력 (예: AB3D5-EF7K9)',
   ticker_placeholder: '시장 개장 준비 중…',
   page_title: '주가조작단 — 트레이딩 보드게임',
   create_title: '새 게임 만들기',
@@ -1123,6 +1164,21 @@ T.ko = {
 T.en = {
   app_sub: 'Insider Trading Board Game · 2–4 players, real-time online',
   rules_btn: 'How to Play',
+  stats_btn: 'My Record',
+  stats_kicker: 'My Record',
+  stats_h3: 'Your Track Record',
+  stats_code_label: 'My Code',
+  stats_code_help: 'Save this code to see the same record on another phone or browser.',
+  stats_games: 'Games Played', stats_wins: 'Wins (1st place)', stats_winrate: 'Win Rate',
+  stats_best_rank: 'Best Finish', stats_best_networth: 'Best Net Worth', stats_avg_networth: 'Average Net Worth',
+  stats_rank_value: v => '#'+v.n,
+  stats_no_games: 'No completed games yet. Finish a game to start building your record.',
+  stats_loading: 'Loading…',
+  stats_error: 'Could not load your record. Please try again in a moment.',
+  stats_load_other_label: 'Load a Different Code',
+  stats_load_other_help: 'Enter a code from another device to view that record — and this device will keep recording under that code from now on.',
+  stats_load_btn: 'Load',
+  stats_code_placeholder: 'Enter code (e.g. AB3D5-EF7K9)',
   ticker_placeholder: 'Preparing to open the market…',
   page_title: 'Insider Trading Board Game — 주가조작단',
   create_title: 'Create New Game',
@@ -1327,7 +1383,7 @@ function connectWs(roomId, name, opts){
 function doConnect(){
   setNetStatus(NET.reconnectAttempts>0 ? t('status_reconnecting',{n:NET.reconnectAttempts}) : t('status_connecting'));
   const opts = NET.opts;
-  let url = SERVER_WS+'/room/'+NET.roomId+'/ws?name='+encodeURIComponent(NET.myName)+'&cid='+encodeURIComponent(CLIENT_ID);
+  let url = SERVER_WS+'/room/'+NET.roomId+'/ws?name='+encodeURIComponent(NET.myName)+'&cid='+encodeURIComponent(CLIENT_ID)+'&pcode='+encodeURIComponent(PCODE);
   if(opts.isNewRoom) url += '&roomId='+encodeURIComponent(NET.roomId)+'&public='+(opts.public?'1':'0');
   const ws = new WebSocket(url);
   NET.ws = ws;
@@ -1401,7 +1457,7 @@ function handleServerMessage(data){
     if(NET.autoStart && NET.youAreHost){
       const opts = NET.autoStart;
       NET.autoStart = null;
-      if(NET.ws) NET.ws.send(JSON.stringify({type:'startGame', botCount:opts.botCount, turnsPerPlayer:opts.turnsPerPlayer, market:opts.market}));
+      if(NET.ws) NET.ws.send(JSON.stringify({type:'startGame', botCount:opts.botCount, turnsPerPlayer:opts.turnsPerPlayer, market:opts.market, isPractice:!!NET.isPractice}));
     }
     setNetStatus('');
     if(NET.youAreHost && NET.roomId){
@@ -2156,6 +2212,70 @@ function showRulesModal(auto){
   }
 }
 
+/* ============ MY RECORD ============ */
+function statsBodyHtml(stats){
+  if(!stats) return '<p class="helpText">'+t('stats_error')+'</p>';
+  if(stats.games===0) return '<p class="helpText">'+t('stats_no_games')+'</p>';
+  const winRate = Math.round(stats.wins/stats.games*100);
+  const avgNw = Math.round(stats.totalNetWorth/stats.games);
+  return ''+
+    '<div class="statRow"><span>'+t('stats_games')+'</span><b>'+stats.games+'</b></div>'+
+    '<div class="statRow"><span>'+t('stats_wins')+'</span><b>'+stats.wins+'</b></div>'+
+    '<div class="statRow"><span>'+t('stats_winrate')+'</span><b>'+winRate+'%</b></div>'+
+    '<div class="statRow"><span>'+t('stats_best_rank')+'</span><b>'+(stats.bestRank!=null? t('stats_rank_value',{n:stats.bestRank}) : '-')+'</b></div>'+
+    '<div class="statRow"><span>'+t('stats_best_networth')+'</span><b>'+fmt(stats.bestNetWorth)+'</b></div>'+
+    '<div class="statRow"><span>'+t('stats_avg_networth')+'</span><b>'+fmt(avgNw)+'</b></div>';
+}
+async function fetchAndRenderStats(overlay, code){
+  const body = overlay.querySelector('#statsBody');
+  if(body) body.innerHTML = '<p class="helpText">'+t('stats_loading')+'</p>';
+  try{
+    const res = await fetch(SERVER_HTTP+'/api/stats/'+encodeURIComponent(code));
+    if(!res.ok) throw new Error('bad status');
+    const stats = await res.json();
+    if(overlay.isConnected && body) body.innerHTML = statsBodyHtml(stats);
+  }catch(e){
+    if(overlay.isConnected && body) body.innerHTML = '<p class="helpText">'+t('stats_error')+'</p>';
+  }
+}
+function showStatsModal(){
+  const overlay = openModal(
+    '<div class="kicker">'+t('stats_kicker')+'</div>'+
+    '<h3>'+t('stats_h3')+'</h3>'+
+    '<div class="helpText" style="margin-top:0;">'+t('stats_code_label')+'</div>'+
+    '<div class="inviteRow">'+
+      '<input id="myCodeInput" readonly value="'+escapeHtml(PCODE)+'">'+
+      '<button class="actionBtn gold" id="copyCodeBtn">'+t('copy_btn')+'</button>'+
+    '</div>'+
+    '<div class="helpText" style="margin-top:.3rem;">'+t('stats_code_help')+'</div>'+
+    '<div id="statsBody" style="margin-top:1rem;"><p class="helpText">'+t('stats_loading')+'</p></div>'+
+    '<div class="helpText" style="margin-top:1.2rem;">'+t('stats_load_other_label')+'</div>'+
+    '<div class="inviteRow">'+
+      '<input id="loadCodeInput" placeholder="'+escapeHtml(t('stats_code_placeholder'))+'" maxlength="11">'+
+      '<button class="actionBtn gold" id="loadCodeBtn">'+t('stats_load_btn')+'</button>'+
+    '</div>'+
+    '<div class="helpText" style="margin-top:.3rem;">'+t('stats_load_other_help')+'</div>',
+    ''
+  );
+  document.getElementById('copyCodeBtn').addEventListener('click', ()=>{
+    const input = document.getElementById('myCodeInput');
+    input.select();
+    navigator.clipboard && navigator.clipboard.writeText(input.value).catch(()=>{});
+    const btn = document.getElementById('copyCodeBtn');
+    const old = btn.textContent; btn.textContent=t('copy_done');
+    setTimeout(()=>btn.textContent=old, 1500);
+  });
+  document.getElementById('loadCodeBtn').addEventListener('click', ()=>{
+    const raw = document.getElementById('loadCodeInput').value.trim().toUpperCase();
+    if(!raw) return;
+    setPcode(raw);
+    document.getElementById('myCodeInput').value = PCODE;
+    document.getElementById('loadCodeInput').value = '';
+    fetchAndRenderStats(overlay, PCODE);
+  });
+  fetchAndRenderStats(overlay, PCODE);
+}
+
 /* ============ END GAME ============ */
 function showEndGameModal(){
   const ranked = G.players.map(p=>({p,nw:netWorth(p)})).sort((a,b)=>b.nw-a.nw);
@@ -2339,6 +2459,7 @@ function boot(){
     if(e.key==='Enter'){ e.preventDefault(); document.getElementById('chatSendBtn').click(); }
   });
   document.getElementById('rulesBtn').addEventListener('click', ()=>showRulesModal(false));
+  document.getElementById('statsBtn').addEventListener('click', showStatsModal);
 }
 
 document.querySelectorAll('.tabBtn').forEach(btn=>{
