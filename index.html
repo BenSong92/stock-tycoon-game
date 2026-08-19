@@ -518,6 +518,10 @@ table.standings td.name{font-family:var(--sans);font-weight:700;display:flex;ali
 .modal .statRow span{color:var(--ink-2);}
 .modal .statRow b{font-family:var(--mono);}
 .modal .inviteRow input{font-family:var(--mono);letter-spacing:.05em;}
+.lbTable{width:100%;border-collapse:collapse;font-size:.85rem;}
+.lbTable th{text-align:left;color:var(--ink-3);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;padding:.3rem .4rem;border-bottom:1px solid var(--border-strong);}
+.lbTable td{padding:.4rem;border-bottom:1px solid var(--border);}
+.lbTable tr.me{background:var(--accent-wash);font-weight:700;}
 #chartLegend i{width:9px;height:9px;border-radius:50%;display:inline-block;}
 </style>
 
@@ -1066,6 +1070,17 @@ T.ko = {
   stats_load_other_help: '다른 기기에서 쓰던 코드를 입력하면 그 전적을 볼 수 있고, 앞으로 이 기기에서도 그 코드로 계속 기록돼요.',
   stats_load_btn: '불러오기',
   stats_code_placeholder: '코드 입력 (예: AB3D5-EF7K9)',
+  leaderboard_btn: '전국 순위 보기',
+  leaderboard_kicker: '전국 순위 · Leaderboard',
+  leaderboard_h3: '전국 순위',
+  leaderboard_loading: '불러오는 중…',
+  leaderboard_error: '순위표를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
+  leaderboard_empty: '아직 순위표에 오른 사람이 없어요. 첫 번째 주인공이 되어보세요!',
+  leaderboard_rank_header: '순위', leaderboard_name_header: '이름',
+  leaderboard_winrate_header: '승률', leaderboard_games_header: '게임 수',
+  leaderboard_min_games_note: v => '최소 '+v.n+'게임 이상 플레이해야 순위에 들어가요.',
+  leaderboard_my_rank: v => '내 순위: '+v.rank+'위 (승률 '+v.winRate+'%, '+v.games+'게임)',
+  leaderboard_not_qualified: v => '아직 순위 밖이에요 — '+v.n+'게임만 더 플레이하면 순위에 들어가요.',
   ticker_placeholder: '시장 개장 준비 중…',
   page_title: '주가조작단 — 트레이딩 보드게임',
   create_title: '새 게임 만들기',
@@ -1242,6 +1257,17 @@ T.en = {
   stats_load_other_help: 'Enter a code from another device to view that record — and this device will keep recording under that code from now on.',
   stats_load_btn: 'Load',
   stats_code_placeholder: 'Enter code (e.g. AB3D5-EF7K9)',
+  leaderboard_btn: 'View Leaderboard',
+  leaderboard_kicker: 'Leaderboard',
+  leaderboard_h3: 'National Leaderboard',
+  leaderboard_loading: 'Loading…',
+  leaderboard_error: 'Could not load the leaderboard. Please try again in a moment.',
+  leaderboard_empty: "No one's on the board yet. Be the first!",
+  leaderboard_rank_header: 'Rank', leaderboard_name_header: 'Name',
+  leaderboard_winrate_header: 'Win Rate', leaderboard_games_header: 'Games',
+  leaderboard_min_games_note: v => 'Play at least '+v.n+' games to qualify for ranking.',
+  leaderboard_my_rank: v => 'My Rank: #'+v.rank+' ('+v.winRate+'% win rate, '+v.games+' games)',
+  leaderboard_not_qualified: v => "You're not ranked yet — play "+v.n+' more game(s) to qualify.',
   ticker_placeholder: 'Preparing to open the market…',
   page_title: 'Insider Trading Board Game — 주가조작단',
   create_title: 'Create New Game',
@@ -2317,6 +2343,7 @@ function showStatsModal(){
     '</div>'+
     '<div class="helpText" style="margin-top:.3rem;">'+t('stats_code_help')+'</div>'+
     '<div id="statsBody" style="margin-top:1rem;"><p class="helpText">'+t('stats_loading')+'</p></div>'+
+    '<button class="bigBtn" id="leaderboardBtn" style="margin-top:.8rem;background:linear-gradient(180deg,var(--panel-3),var(--panel-2));color:var(--ink);border-color:var(--border-strong);">'+t('leaderboard_btn')+'</button>'+
     '<div class="helpText" style="margin-top:1.2rem;">'+t('stats_load_other_label')+'</div>'+
     '<div class="inviteRow">'+
       '<input id="loadCodeInput" placeholder="'+escapeHtml(t('stats_code_placeholder'))+'" maxlength="11">'+
@@ -2341,7 +2368,55 @@ function showStatsModal(){
     document.getElementById('loadCodeInput').value = '';
     fetchAndRenderStats(overlay, PCODE);
   });
+  document.getElementById('leaderboardBtn').addEventListener('click', showLeaderboardModal);
   fetchAndRenderStats(overlay, PCODE);
+}
+
+function leaderboardBodyHtml(data){
+  if(!data) return '<p class="helpText">'+t('leaderboard_error')+'</p>';
+  let html = '';
+  if(!data.top || data.top.length===0){
+    html += '<p class="helpText" style="margin-top:0;">'+t('leaderboard_empty')+'</p>';
+  } else {
+    html += '<table class="lbTable"><thead><tr>'+
+      '<th>'+t('leaderboard_rank_header')+'</th>'+
+      '<th>'+t('leaderboard_name_header')+'</th>'+
+      '<th>'+t('leaderboard_winrate_header')+'</th>'+
+      '<th>'+t('leaderboard_games_header')+'</th>'+
+      '</tr></thead><tbody>'+
+      data.top.map(r=>
+        '<tr'+(data.myRank && data.myRank.rank===r.rank ? ' class="me"' : '')+'>'+
+        '<td>'+r.rank+'</td><td>'+escapeHtml(r.name)+'</td><td>'+r.winRate+'%</td><td>'+r.games+'</td></tr>'
+      ).join('')+
+      '</tbody></table>';
+  }
+  html += '<p class="helpText" style="margin-top:.8rem;">'+t('leaderboard_min_games_note',{n:data.minGames})+'</p>';
+  if(data.myRank){
+    if(data.myRank.rank!=null){
+      html += '<p class="helpText" style="margin-top:.3rem;font-weight:700;">'+t('leaderboard_my_rank', data.myRank)+'</p>';
+    } else {
+      html += '<p class="helpText" style="margin-top:.3rem;font-weight:700;">'+t('leaderboard_not_qualified',{n:data.myRank.gamesNeeded})+'</p>';
+    }
+  }
+  return html;
+}
+async function showLeaderboardModal(){
+  const overlay = openModal(
+    '<div class="kicker">'+t('leaderboard_kicker')+'</div>'+
+    '<h3>'+t('leaderboard_h3')+'</h3>'+
+    '<div id="leaderboardBody"><p class="helpText" style="margin-top:0;">'+t('leaderboard_loading')+'</p></div>',
+    'wide'
+  );
+  try{
+    const res = await fetch(SERVER_HTTP+'/api/leaderboard?pcode='+encodeURIComponent(PCODE));
+    if(!res.ok) throw new Error('bad status');
+    const data = await res.json();
+    const body = overlay.querySelector('#leaderboardBody');
+    if(overlay.isConnected && body) body.innerHTML = leaderboardBodyHtml(data);
+  }catch(e){
+    const body = overlay.querySelector('#leaderboardBody');
+    if(overlay.isConnected && body) body.innerHTML = leaderboardBodyHtml(null);
+  }
 }
 
 /* ============ END GAME ============ */
